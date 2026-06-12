@@ -1,9 +1,10 @@
-var CACHE = 'chemcalc-v2';
-var FILES = ['/', 'index.html', 'manifest.json', 'icon.svg'];
+var CACHE = 'chemcalc-v3';
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
-    caches.open(CACHE).then(function(c) { return c.addAll(FILES); })
+    caches.open(CACHE).then(function(c) {
+      return c.addAll(['.', 'index.html', 'manifest.json', 'icon.svg']);
+    })
   );
   self.skipWaiting();
 });
@@ -21,6 +22,10 @@ self.addEventListener('activate', function(e) {
 
 self.addEventListener('fetch', function(e) {
   e.respondWith(
-    caches.match(e.request).then(function(r) { return r || fetch(e.request); })
+    caches.match(e.request).then(function(r) {
+      return r || caches.match(e.request, { ignoreSearch: true }).then(function(r2) {
+        return r2 || fetch(e.request);
+      });
+    })
   );
 });
