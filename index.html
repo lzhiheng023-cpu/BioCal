@@ -720,17 +720,21 @@ body {
     updateThemeBtn();
   });
 
-  // Fullscreen
-  function updateFullscreenBtn() {
-    var btn = document.getElementById('btn-fullscreen');
-    btn.textContent = document.fullscreenElement ? '✕' : '⛶';
-    btn.classList.toggle('fs-active', !!document.fullscreenElement);
+  // Fullscreen (not supported on iOS Safari, hide btn if unavailable)
+  var fsBtn = document.getElementById('btn-fullscreen');
+  if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+    fsBtn.style.display = 'none';
+  } else {
+    function updateFullscreenBtn() {
+      fsBtn.textContent = document.fullscreenElement ? '✕' : '⛶';
+      fsBtn.classList.toggle('fs-active', !!document.fullscreenElement);
+    }
+    fsBtn.addEventListener('click', function() {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
+      else document.exitFullscreen();
+    });
+    document.addEventListener('fullscreenchange', updateFullscreenBtn);
   }
-  document.getElementById('btn-fullscreen').addEventListener('click', function() {
-    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
-    else document.exitFullscreen();
-  });
-  document.addEventListener('fullscreenchange', updateFullscreenBtn);
 
   // Physical keyboard
   document.addEventListener('keydown', function(e) {
