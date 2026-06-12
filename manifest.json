@@ -1,0 +1,18 @@
+{
+  "name": "化学浓度计算器",
+  "short_name": "浓度计算器",
+  "description": "基于 c=m/(M×V) 的化学溶液浓度/质量计算工具",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f4f8",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="浓度计算器">
+<meta name="theme-color" content="#f0f4f8">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>化学浓度计算器</title>
+<style>
+:root {
+  --bg: #f0f4f8;        --card: #fff;
+  --text: #1a202c;       --text2: #718096;
+  --border: #e2e8f0;     --primary: #4f46e5;
+  --pri-light: #eef2ff;  --success: #059669;
+  --suc-light: #ecfdf5;  --warn: #d97706;
+  --warn-light: #fffbeb; --danger: #dc2626;
+  --dan-light: #fef2f2;  --key-bg: #f8fafc;
+  --key-active: #cbd5e1; --shadow: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --seg-bg: #f1f5f9;     --seg-slider: #fff;
+  --molar-input-bg: #fffbeb; --molar-border: #fde68a; --molar-placeholder: #d4c48a;
+  --del-bg: #fef3c7;     --del-color: #d97706;
+  --input-bg: #fafbfc;   --active-input-bg: #fff;
+  --grad-end: #7c3aed;
+  --radius: 14px;
+}
+
+[data-theme="dark"] {
+  --bg: #0f172a;         --card: #1e293b;
+  --text: #e2e8f0;       --text2: #94a3b8;
+  --border: #334155;     --primary: #818cf8;
+  --pri-light: #1e1b4b;  --success: #34d399;
+  --suc-light: #022c22;  --warn: #fbbf24;
+  --warn-light: #451a03; --danger: #f87171;
+  --dan-light: #2d0a0a;  --key-bg: #1e293b;
+  --key-active: #475569; --shadow: 0 1px 3px rgba(0,0,0,.3);
+  --seg-bg: #334155;     --seg-slider: var(--primary);
+  --molar-input-bg: #451a03; --molar-border: #78350f; --molar-placeholder: #92400e;
+  --del-bg: #451a03;     --del-color: #fbbf24;
+  --input-bg: #1e293b;   --active-input-bg: #233050;
+  --grad-end: #a78bfa;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+}
+
+.app { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Header */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 4px 0;
+}
+.header h1 {
+  font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--primary), var(--grad-end));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.header-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 38px; height: 38px; border: none; border-radius: 10px;
+  background: var(--card); color: var(--text2); font-size: 1.1rem;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  box-shadow: var(--shadow); transition: all .15s;
+}
+.icon-btn:active { background: var(--key-active); transform: scale(.94); }
+.icon-btn.fs-active { background: var(--pri-light); color: var(--primary); }
+
+/* Card */
+.card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+
+/* Input groups */
+.input-group { margin-bottom: 14px; }
+.input-group:last-of-type { margin-bottom: 0; }
+.input-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;
+}
+.input-header label { font-size: .82rem; font-weight: 600; color: var(--text2); }
+.input-header label em { font-style: italic; color: var(--text); font-size: .9rem; font-family: 'Times New Roman', Times, serif; }
+
+/* iOS segmented control */
+.segmented {
+  position: relative; display: inline-flex; background: var(--seg-bg);
+  border-radius: 8px; padding: 2px;
+}
+.seg-slider {
+  position: absolute; top: 2px; height: calc(100% - 4px);
+  background: var(--seg-slider); border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+  transition: left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  z-index: 0;
+}
+.seg-option {
+  position: relative; z-index: 1; border: none; background: transparent;
+  padding: 2px 10px; font-size: .65rem; font-weight: 500;
+  color: var(--text2); cursor: pointer; border-radius: 6px;
+  transition: color .2s; white-space: nowrap;
+}
+.seg-option.active { color: var(--text); font-weight: 600; }
+[data-theme="dark"] .seg-option.active { color: #fff; }
+
+.input-group input {
+  width: 100%; padding: 12px 14px; border: 2px solid var(--border);
+  border-radius: 10px; font-size: 1.15rem; font-weight: 500;
+  font-variant-numeric: tabular-nums; background: var(--input-bg);
+  color: var(--text); font-family: 'Times New Roman', Times, serif;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  outline: none; cursor: pointer;
+}
+.input-group input::placeholder { color: #cbd5e1; }
+[data-theme="dark"] .input-group input::placeholder { color: #475569; }
+.input-group.active input {
+  border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+  background: var(--active-input-bg);
+}
+[data-theme="dark"] .input-group.active input { box-shadow: 0 0 0 3px rgba(129,140,248,.18); }
+.input-group.derived input {
+  background: var(--suc-light); border-color: #6ee7b7; color: var(--success);
+}
+[data-theme="dark"] .input-group.derived input { border-color: #059669; }
+.input-group.missing-M { opacity: .4; }
+
+/* M section */
+.input-group.input-molar {
+  background: var(--warn-light); border: 1.5px solid var(--molar-border);
+  border-radius: 10px; padding: 12px 14px;
+}
+.input-group.input-molar .input-header label { color: var(--warn); }
+.input-group.input-molar .input-header .known-badge {
+  font-size: .65rem; background: #fef3c7; color: var(--warn);
+  padding: 2px 8px; border-radius: 20px; font-weight: 600; letter-spacing: .03em;
+}
+[data-theme="dark"] .input-group.input-molar .input-header .known-badge { background: #78350f; color: var(--warn); }
+.input-group.input-molar input { border-color: var(--molar-border); background: var(--molar-input-bg); }
+.input-group.input-molar input::placeholder { color: var(--molar-placeholder); }
+.input-group.input-molar.active input {
+  border-color: var(--warn); box-shadow: 0 0 0 3px rgba(217,119,6,.12);
+}
+[data-theme="dark"] .input-group.input-molar { background: var(--warn-light); }
+[data-theme="dark"] .input-group.input-molar.active input { box-shadow: 0 0 0 3px rgba(251,191,36,.18); }
+
+/* Buttons row */
+.btn-row { display: flex; gap: 8px; margin-top: 6px; }
+.btn-calc, .btn-save {
+  flex: 1; padding: 10px; border-radius: 10px; font-size: .85rem;
+  font-weight: 600; cursor: pointer; transition: all .15s; border: 1.5px solid transparent;
+}
+.btn-calc {
+  background: var(--primary); color: #fff; border-color: var(--primary);
+}
+[data-theme="dark"] .btn-calc { color: #0f172a; }
+.btn-calc:active { opacity: .85; transform: scale(.97); }
+.btn-save {
+  background: transparent; color: var(--text2); border-color: var(--border); border-style: dashed;
+}
+.btn-save.ready {
+  border-style: solid; border-color: var(--primary);
+  background: var(--pri-light); color: var(--primary);
+}
+.btn-save:active { transform: scale(.97); }
+.btn-save.saved {
+  border-color: var(--success); background: var(--suc-light); color: var(--success);
+}
+
+/* Keypad */
+.keypad-wrap {
+  background: var(--card); border-radius: var(--radius);
+  padding: 14px 16px; box-shadow: var(--shadow);
+}
+.keypad-hint { text-align: center; font-size: .75rem; color: var(--text2); margin-bottom: 10px; min-height: 18px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.keypad button {
+  height: 50px; border: none; border-radius: 10px; font-size: 1.25rem;
+  font-weight: 600; cursor: pointer; background: var(--key-bg); color: var(--text);
+  transition: all .1s; display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.keypad button:active { background: var(--key-active); transform: scale(.94); }
+.keypad .key-del { background: var(--del-bg); color: var(--del-color); font-size: 1rem; }
+.keypad .key-clear {
+  grid-column: 1 / -1; height: 40px; font-size: .85rem; font-weight: 600;
+  background: var(--dan-light); color: var(--danger); letter-spacing: .05em;
+}
+
+/* History */
+.history-section { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+.history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.history-header h3 { font-size: .9rem; font-weight: 600; }
+.history-header button {
+  font-size: .75rem; border: none; background: none; color: var(--danger);
+  cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background .1s;
+}
+.history-header button:active { background: var(--dan-light); }
+.history-list { display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; }
+.history-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; background: var(--input-bg); border-radius: 8px;
+  cursor: pointer; transition: background .12s; font-size: .82rem; border: 1px solid transparent;
+}
+.history-item:active { background: var(--pri-light); border-color: var(--primary); }
+.history-item .hi-vals { display: flex; flex-direction: column; gap: 2px; }
+.history-item .hi-vals span { font-size: .73rem; color: var(--text2); }
+.history-item .hi-solved { font-size: .7rem; color: var(--success); font-weight: 600; white-space: nowrap; }
+.history-empty { text-align: center; font-size: .8rem; color: var(--text2); padding: 16px 0; }
+</style>
+</head>
+<body>
+<script>
+(function(){
+  var t = localStorage.getItem('chemcalc_theme');
+  if (t === 'dark' || (!t && matchMedia('(prefers-color-scheme:dark)').matches)) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+</script>
+
+<div class="app">
+  <header class="header">
+    <h1>浓度计算器</h1>
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-theme" title="深色模式">☾</button>
+      <button class="icon-btn" id="btn-fullscreen" title="全屏模式">⛶</button>
+      <button class="icon-btn" id="btn-clearall" title="全部清除">↺</button>
+    </div>
+  </header>
+
+  <div class="card" id="input-card">
+
+    <div class="input-group input-molar" data-field="M">
+      <div class="input-header">
+        <label>摩尔质量 <em>M</em></label>
+        <span class="known-badge">已知量</span>
+      </div>
+      <input type="text" inputmode="none" readonly id="input-molar" data-field="M" placeholder="请输入化合物摩尔质量">
+    </div>
+
+    <div class="input-group" data-field="c">
+      <div class="input-header">
+        <label>浓度 <em>c</em></label>
+        <div class="segmented" data-unit-field="c">
+          <div class="seg-slider"></div>
+          <button class="seg-option" data-unit="M">M</button>
+          <button class="seg-option active" data-unit="mM">mM</button>
+          <button class="seg-option" data-unit="μM">μM</button>
+        </div>
+      </div>
+      <input type="text" inputmode="none" readonly id="input-c" data-field="c" placeholder="0">
+    </div>
+
+    <div class="input-group" data-field="V">
+      <div class="input-header">
+        <label>体积 <em>V</em></label>
+        <div class="segmented" data-unit-field="V">
+          <div class="seg-slider"></div>
+          <button class="seg-option" data-unit="L">L</button>
+          <button class="seg-option active" data-unit="mL">mL</button>
+        </div>
+      </div>
+      <input type="text" inputmode="none" readonly id="input-v" data-field="V" placeholder="0">
+    </div>
+
+    <div class="input-group" data-field="m">
+      <div class="input-header">
+        <label>质量 <em>m</em></label>
+        <div class="segmented" data-unit-field="m">
+          <div class="seg-slider"></div>
+          <button class="seg-option" data-unit="g">g</button>
+          <button class="seg-option active" data-unit="mg">mg</button>
+        </div>
+      </div>
+      <input type="text" inputmode="none" readonly id="input-m" data-field="m" placeholder="0">
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-calc" id="btn-calc">计算</button>
+      <button class="btn-save" id="btn-save">保存</button>
+    </div>
+
+  </div>
+
+  <div class="keypad-wrap" id="keypad-wrap">
+    <div class="keypad-hint" id="keypad-hint">请先输入摩尔质量 M（化合物固定值）</div>
+    <div class="keypad" id="keypad">
+      <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button>
+      <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button>
+      <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button>
+      <button data-key=".">.</button><button data-key="0">0</button>
+      <button class="key-del" data-key="backspace">⌫</button>
+      <button class="key-clear" data-key="clear">清 零</button>
+    </div>
+  </div>
+
+  <div class="history-section" id="history-section">
+    <div class="history-header">
+      <h3 id="history-title">计算记录</h3>
+      <button id="btn-clear-history">清空记录</button>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="history-empty">暂无记录</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var inputFields = ['c', 'V', 'm'];
+  var allFields = ['c', 'V', 'm', 'M'];
+  var inputs = {
+    c: document.getElementById('input-c'),
+    V: document.getElementById('input-v'),
+    m: document.getElementById('input-m'),
+    M: document.getElementById('input-molar')
+  };
+  var hintEl = document.getElementById('keypad-hint');
+
+  var activeField = 'M';
+  var derivedField = null;
+  var currentCalc = null;
+  var unitState = { c: 'mM', V: 'mL', m: 'mg' };
+
+  function getUnitMultiplier(field) {
+    switch (field) {
+      case 'c': return unitState.c === 'M' ? 1 : unitState.c === 'mM' ? 1000 : 1000000;
+      case 'V': return unitState.V === 'L' ? 1 : 1000;
+      case 'm': return unitState.m === 'g' ? 1 : 1000;
+      default:  return 1;
+    }
+  }
+
+  function fmt(n) {
+    if (!isFinite(n) || isNaN(n)) return '';
+    if (n === 0) return '0';
+    if (Math.abs(n) < 1e-10 || Math.abs(n) >= 1e12) return n.toExponential(5);
+    return parseFloat(n.toFixed(10)).toString();
+  }
+
+  function getMValue() {
+    var raw = inputs.M.value.trim();
+    if (raw === '') return NaN;
+    var v = parseFloat(raw);
+    if (isNaN(v) || !isFinite(v) || v <= 0) { inputs.M.value = ''; return NaN; }
+    return v;
+  }
+
+  function parseInternal(field) {
+    var raw = inputs[field].value.trim();
+    if (raw === '') return NaN;
+    var dv = parseFloat(raw);
+    if (isNaN(dv) || !isFinite(dv) || dv < 0) { inputs[field].value = ''; return NaN; }
+    return dv / getUnitMultiplier(field);
+  }
+
+  function setDisplay(field, iv) {
+    inputs[field].value = fmt(iv * getUnitMultiplier(field));
+  }
+
+  function canCalculate(M, vals, target) {
+    if (isNaN(M) || M <= 0) return false;
+    switch (target) {
+      case 'c': return (vals.V || 0) > 0;
+      case 'V': return (vals.c || 0) > 0;
+      case 'm': return true;
+    }
+    return false;
+  }
+
+  function compute(M, vals, target) {
+    switch (target) {
+      case 'c': return vals.m / (M * vals.V);
+      case 'V': return vals.m / (vals.c * M);
+      case 'm': return vals.c * M * vals.V;
+    }
+    return null;
+  }
+
+  // ---- Visual state updates ----
+
+  function updateMStatus() {
+    var miss = isNaN(getMValue());
+    document.querySelectorAll('.input-group:not(.input-molar)').forEach(function(g) {
+      g.classList.toggle('missing-M', miss);
+    });
+    updateHint();
+  }
+
+  function updateHint() {
+    var Mval = getMValue();
+    var names = { c: '浓度 c', V: '体积 V', m: '质量 m', M: '摩尔质量 M' };
+    if (activeField) hintEl.textContent = '正在输入: ' + (names[activeField] || activeField);
+    if (isNaN(Mval) && activeField !== 'M') hintEl.textContent = '⚠ 请先输入摩尔质量 M';
+  }
+
+  function updateActiveStyles() {
+    document.querySelectorAll('.input-group').forEach(function(g) { g.classList.remove('active'); });
+    if (activeField === 'M') {
+      var mol = document.querySelector('.input-group.input-molar');
+      if (mol) mol.classList.add('active');
+    } else {
+      var sel = '.input-group[data-field="' + activeField + '"]:not(.input-molar)';
+      var g = document.querySelector(sel);
+      if (g) g.classList.add('active');
+    }
+    updateHint();
+  }
+
+  function updateDerivedStyle() {
+    document.querySelectorAll('.input-group').forEach(function(g) { g.classList.remove('derived'); });
+    if (derivedField) {
+      var sel = '.input-group[data-field="' + derivedField + '"]:not(.input-molar)';
+      var g = document.querySelector(sel);
+      if (g) g.classList.add('derived');
+    }
+    updateSaveBtn();
+  }
+
+  function updateSaveBtn() {
+    var btn = document.getElementById('btn-save');
+    btn.classList.toggle('ready', !!currentCalc);
+    btn.classList.remove('saved');
+    btn.textContent = '保存';
+  }
+
+  // ---- Calculate button ----
+
+  function doCalculate() {
+    // Clear previous derived
+    if (derivedField) { inputs[derivedField].value = ''; derivedField = null; }
+
+    var M = getMValue();
+    if (isNaN(M)) {
+      hintEl.textContent = '⚠ 请先输入摩尔质量 M';
+      updateDerivedStyle();
+      currentCalc = null;
+      updateSaveBtn();
+      return;
+    }
+
+    var vals = {};
+    var emptyField = null;
+    var filledCount = 0;
+
+    for (var i = 0; i < inputFields.length; i++) {
+      var f = inputFields[i];
+      var v = parseInternal(f);
+      if (!isNaN(v)) { vals[f] = v; filledCount++; }
+      else if (!emptyField) emptyField = f;
+    }
+
+    if (filledCount !== 2) {
+      hintEl.textContent = filledCount < 2 ? '⚠ 请填入 2 个变量再计算' : '⚠ 请清空 1 个变量后再计算';
+      currentCalc = null;
+      updateDerivedStyle();
+      updateSaveBtn();
+      return;
+    }
+
+    if (!canCalculate(M, vals, emptyField)) {
+      hintEl.textContent = '⚠ 输入值不合法（除数为零）';
+      currentCalc = null;
+      updateDerivedStyle();
+      updateSaveBtn();
+      return;
+    }
+
+    var result = compute(M, vals, emptyField);
+    if (result === null || !isFinite(result) || result < 0) {
+      hintEl.textContent = '⚠ 计算出错，请检查输入';
+      currentCalc = null;
+      updateDerivedStyle();
+      updateSaveBtn();
+      return;
+    }
+
+    setDisplay(emptyField, result);
+    derivedField = emptyField;
+    currentCalc = { c: vals.c || 0, V: vals.V || 0, m: vals.m || 0, M: M };
+    currentCalc[emptyField] = result;
+
+    hintEl.textContent = '✓ 计算完成 — ' + ({c:'浓度 c', V:'体积 V', m:'质量 m'})[emptyField] + ' 已求出';
+    updateDerivedStyle();
+  }
+
+  // ---- Keypad input ----
+
+  function handleKeyPress(key) {
+    if (!activeField) return;
+    var input = inputs[activeField];
+    var value = input.value;
+
+    if (key === 'clear') { value = ''; }
+    else if (key === 'backspace') { value = value.slice(0, -1); }
+    else if (key === '.') {
+      if (value.includes('.')) return;
+      if (value === '') value += '0';
+      value += '.';
+    } else {
+      if (value === '0' && key !== '.') value = key;
+      else value += key;
+    }
+
+    input.value = value;
+
+    // Any edit invalidates the previous calculation
+    if (derivedField) { derivedField = null; currentCalc = null; }
+
+    // If user edits M, update M status
+    if (activeField === 'M') updateMStatus();
+
+    updateDerivedStyle();
+    updateHint();
+  }
+
+  // ---- Unit toggle ----
+
+  function onUnitToggle(field, newUnit) {
+    if (unitState[field] === newUnit) return;
+
+    var oldMul = getUnitMultiplier(field);
+    unitState[field] = newUnit;
+    var newMul = getUnitMultiplier(field);
+    updateUnitButtons();
+
+    if (derivedField === field) {
+      // Convert display value of the derived field
+      var dv = parseFloat(inputs[field].value);
+      if (!isNaN(dv) && isFinite(dv)) {
+        var iv = dv / oldMul;
+        inputs[field].value = fmt(iv * newMul);
+      }
+    } else if (derivedField) {
+      // User changed unit of a non-derived field → derived result no longer consistent
+      derivedField = null;
+      currentCalc = null;
+    }
+
+    updateDerivedStyle();
+    updateHint();
+  }
+
+  // ---- Segmented slider ----
+
+  function updateAllSegSliders() {
+    document.querySelectorAll('.segmented').forEach(function(seg) {
+      var ab = seg.querySelector('.seg-option.active');
+      var sl = seg.querySelector('.seg-slider');
+      if (!ab || !sl) return;
+      sl.style.left = ab.offsetLeft + 'px';
+      sl.style.width = ab.offsetWidth + 'px';
+    });
+  }
+
+  function updateUnitButtons() {
+    document.querySelectorAll('.segmented').forEach(function(seg) {
+      var field = seg.dataset.unitField;
+      var cur = unitState[field];
+      seg.querySelectorAll('.seg-option').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.unit === cur);
+      });
+    });
+    updateAllSegSliders();
+  }
+
+  // ---- History ----
+
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('chemcalc_v4') || '[]'); }
+    catch(e) { return []; }
+  }
+  function saveHistory(h) { localStorage.setItem('chemcalc_v4', JSON.stringify(h)); }
+
+  function saveCurrentCalc() {
+    if (!currentCalc) return;
+    var h = getHistory();
+    var last = h[0];
+    if (!(last && last.c === currentCalc.c && last.V === currentCalc.V &&
+          last.m === currentCalc.m && last.M === currentCalc.M && last.solved === derivedField)) {
+      h.unshift({
+        c: currentCalc.c, V: currentCalc.V, m: currentCalc.m, M: currentCalc.M,
+        solved: derivedField,
+        units: { c: unitState.c, V: unitState.V, m: unitState.m },
+        ts: Date.now()
+      });
+      if (h.length > 10) h.length = 10;
+      saveHistory(h);
+      renderHistory();
+    }
+    var btn = document.getElementById('btn-save');
+    btn.classList.add('saved');
+    btn.textContent = '✓ 已保存';
+    setTimeout(function(){ btn.classList.remove('saved'); btn.textContent = '保存'; }, 1200);
+  }
+
+  function historyDisplay(item) {
+    var d = new Date(item.ts), diffMin = Math.floor((Date.now() - d) / 60000), timeStr;
+    if (diffMin < 1) timeStr = '刚刚';
+    else if (diffMin < 60) timeStr = diffMin + '分钟前';
+    else if (diffMin < 1440) timeStr = Math.floor(diffMin / 60) + '小时前';
+    else timeStr = Math.floor(diffMin / 1440) + '天前';
+    var u = item.units || {};
+    var cMul = u.c === 'mM' ? 1000 : u.c === 'μM' ? 1000000 : 1;
+    var vMul = u.V === 'mL' ? 1000 : 1;
+    var mMul = u.m === 'mg' ? 1000 : 1;
+    return {
+      timeStr: timeStr,
+      c: fmt(item.c * cMul), cUnit: u.c || 'M',
+      V: fmt(item.V * vMul), vUnit: u.V || 'L',
+      m: fmt(item.m * mMul), mUnit: u.m || 'g',
+      M: fmt(item.M), solved: item.solved
+    };
+  }
+
+  function renderHistory() {
+    var list = document.getElementById('history-list');
+    var title = document.getElementById('history-title');
+    var h = getHistory();
+    title.textContent = '计算记录 (' + h.length + '/10)';
+    if (h.length === 0) { list.innerHTML = '<div class="history-empty">暂无记录</div>'; return; }
+    var html = '';
+    for (var i = 0; i < h.length; i++) {
+      var d = historyDisplay(h[i]);
+      var parts = [];
+      if (d.solved !== 'c') parts.push('c=' + d.c + ' ' + d.cUnit);
+      if (d.solved !== 'V') parts.push('V=' + d.V + ' ' + d.vUnit);
+      if (d.solved !== 'm') parts.push('m=' + d.m + ' ' + d.mUnit);
+      parts.push('M=' + d.M + ' g/mol');
+      var lb = { c: 'c', V: 'V', m: 'm' };
+      var lu = { c: d.cUnit, V: d.vUnit, m: d.mUnit };
+      var lv = { c: d.c, V: d.V, m: d.m };
+      html += '<div class="history-item" data-idx="' + i + '"><div class="hi-vals"><strong>' +
+        lb[d.solved] + ' = ' + lv[d.solved] + ' ' + lu[d.solved] +
+        '</strong><span>' + parts.join(', ') + '</span></div><div class="hi-solved">' + d.timeStr + '</div></div>';
+    }
+    list.innerHTML = html;
+    list.querySelectorAll('.history-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        loadHistoryItem(getHistory()[parseInt(el.dataset.idx)]);
+      });
+    });
+  }
+
+  function loadHistoryItem(item) {
+    derivedField = null; currentCalc = null;
+    if (item.units) { unitState.c = item.units.c || 'M'; unitState.V = item.units.V || 'L'; unitState.m = item.units.m || 'g'; }
+    updateUnitButtons();
+    var cMul = unitState.c === 'mM' ? 1000 : unitState.c === 'μM' ? 1000000 : 1;
+    var vMul = unitState.V === 'mL' ? 1000 : 1;
+    var mMul = unitState.m === 'mg' ? 1000 : 1;
+    inputs.c.value = fmt(item.c * cMul);
+    inputs.V.value = fmt(item.V * vMul);
+    inputs.m.value = fmt(item.m * mMul);
+    inputs.M.value = fmt(item.M);
+    updateDerivedStyle();
+    updateActiveStyles();
+    updateMStatus();
+  }
+
+  function clearAllInputs() {
+    allFields.forEach(function(f) { inputs[f].value = ''; });
+    derivedField = null; currentCalc = null;
+    updateDerivedStyle(); updateActiveStyles(); updateMStatus();
+  }
+
+  // ---- Events ----
+
+  document.getElementById('input-card').addEventListener('click', function(e) {
+    var inp = e.target.closest('input');
+    if (!inp) return;
+    setField(inp.dataset.field);
+  });
+
+  function setField(f) { activeField = f; updateActiveStyles(); }
+
+  document.getElementById('btn-calc').addEventListener('click', doCalculate);
+  document.getElementById('btn-save').addEventListener('click', saveCurrentCalc);
+
+  document.getElementById('keypad').addEventListener('click', function(e) {
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    handleKeyPress(btn.dataset.key);
+  });
+
+  document.querySelectorAll('.segmented').forEach(function(seg) {
+    seg.addEventListener('click', function(e) {
+      var btn = e.target.closest('.seg-option');
+      if (!btn) return;
+      onUnitToggle(seg.dataset.unitField, btn.dataset.unit);
+    });
+  });
+
+  document.getElementById('btn-clearall').addEventListener('click', clearAllInputs);
+  document.getElementById('btn-clear-history').addEventListener('click', function() {
+    saveHistory([]); renderHistory();
+  });
+
+  // Dark mode
+  function updateThemeBtn() {
+    document.getElementById('btn-theme').textContent =
+      document.documentElement.getAttribute('data-theme') === 'dark' ? '☀' : '☾';
+  }
+  document.getElementById('btn-theme').addEventListener('click', function() {
+    var isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) { document.documentElement.removeAttribute('data-theme'); localStorage.setItem('chemcalc_theme', 'light'); }
+    else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('chemcalc_theme', 'dark'); }
+    updateThemeBtn();
+  });
+
+  // Fullscreen
+  function updateFullscreenBtn() {
+    var btn = document.getElementById('btn-fullscreen');
+    btn.textContent = document.fullscreenElement ? '✕' : '⛶';
+    btn.classList.toggle('fs-active', !!document.fullscreenElement);
+  }
+  document.getElementById('btn-fullscreen').addEventListener('click', function() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
+    else document.exitFullscreen();
+  });
+  document.addEventListener('fullscreenchange', updateFullscreenBtn);
+
+  // Physical keyboard
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key >= '0' && e.key <= '9') { handleKeyPress(e.key); return; }
+    if (e.key === '.') { handleKeyPress('.'); return; }
+    if (e.key === 'Backspace') { handleKeyPress('backspace'); return; }
+    if (e.key === 'Delete' || e.key === 'Escape') { handleKeyPress('clear'); return; }
+    if (e.key === 'Enter') { doCalculate(); return; }
+  });
+
+  // Init
+  updateThemeBtn();
+  updateActiveStyles();
+  updateDerivedStyle();
+  updateUnitButtons();
+  updateMStatus();
+  renderHistory();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(function(){});
+}
+</script>
+</body>
+</html>
