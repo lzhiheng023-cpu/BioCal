@@ -1,9 +1,9 @@
-var CACHE = 'chemcalc-v5';
+var CACHE = 'chemcalc-v6';
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
     caches.open(CACHE).then(function(c) {
-      return c.addAll(['.', 'index.html', 'manifest.json', 'icon.svg']);
+      return c.addAll(['.', 'index.html', 'manifest.json', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png']);
     })
   );
   self.skipWaiting();
