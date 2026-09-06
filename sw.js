@@ -1,4 +1,4 @@
-var CACHE = 'chemcalc-v7';
+var CACHE = 'chemcalc-v8';
 
 self.addEventListener('install', function(e) {
   e.waitUntil(
