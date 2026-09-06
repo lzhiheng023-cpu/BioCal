@@ -71,6 +71,8 @@ body {
   background: linear-gradient(135deg, var(--primary), var(--grad-end));
   -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
 }
+.title-wrap { display: flex; align-items: baseline; gap: 6px; }
+.app-version { font-size: .66rem; color: var(--text2); font-weight: 500; letter-spacing: .03em; }
 .header-actions { display: flex; gap: 6px; }
 .icon-btn {
   width: 38px; height: 38px; border: none; border-radius: 10px;
@@ -241,7 +243,10 @@ body {
 
 <div class="app">
   <header class="header">
-    <h1>浓度计算器</h1>
+    <div class="title-wrap">
+      <h1>浓度计算器</h1>
+      <span class="app-version">v1.2.0</span>
+    </div>
     <div class="header-actions">
       <button class="icon-btn" id="btn-theme" title="深色模式">☾</button>
       <button class="icon-btn" id="btn-fullscreen" title="全屏模式">⛶</button>
