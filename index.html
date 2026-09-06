@@ -136,6 +136,15 @@ body {
 [data-theme="dark"] .input-group.derived input { border-color: #059669; }
 .input-group.missing-M { opacity: .4; }
 
+/* Pipette hint */
+.pipette-hint {
+  display: none; margin-top: 8px; padding: 7px 10px;
+  background: var(--suc-light); border-radius: 8px;
+  font-size: .72rem; color: var(--success); line-height: 1.5;
+}
+.pipette-hint.visible { display: block; }
+.pipette-hint .alt { display: block; margin-top: 2px; color: var(--text2); }
+
 /* M section */
 .input-group.input-molar {
   background: var(--warn-light); border: 1.5px solid var(--molar-border);
@@ -273,6 +282,7 @@ body {
         </div>
       </div>
       <input type="text" inputmode="none" readonly id="input-v" data-field="V" placeholder="0">
+      <div class="pipette-hint" id="pipette-hint"></div>
     </div>
 
     <div class="input-group" data-field="m">
@@ -328,6 +338,7 @@ body {
     M: document.getElementById('input-molar')
   };
   var hintEl = document.getElementById('keypad-hint');
+  var pipetteHintEl = document.getElementById('pipette-hint');
 
   var activeField = 'M';
   var derivedField = null;
@@ -427,6 +438,39 @@ body {
       if (g) g.classList.add('derived');
     }
     updateSaveBtn();
+    updatePipetteHint();
+  }
+
+  function fmtUl(n) {
+    var r = Math.round(n * 10) / 10;
+    return parseFloat(r.toFixed(1)).toString();
+  }
+
+  function updatePipetteHint() {
+    var html = '', visible = false;
+    if (derivedField === 'V') {
+      var dv = parseFloat(inputs.V.value);
+      if (isFinite(dv) && dv > 0) {
+        var vUl = dv * (unitState.V === 'L' ? 1000000 : 1000);
+        if (vUl > 0) {
+          var n = Math.max(1, Math.ceil(vUl / 1000));
+          var m = vUl / n;
+          var main = '移液提示：' + fmtUl(m) + ' μL × ' + n + ' 次（1000 μL 移液器）';
+          var alt = '';
+          if (Math.abs(m - Math.round(m)) > 1e-9) {
+            var k = Math.floor(vUl / 1000);
+            var r = vUl - k * 1000;
+            if (k >= 1 && r > 0) {
+              alt = '<span class="alt">或：1000 μL × ' + k + ' 次 + ' + fmtUl(r) + ' μL × 1 次</span>';
+            }
+          }
+          html = main + alt;
+          visible = true;
+        }
+      }
+    }
+    pipetteHintEl.innerHTML = html;
+    pipetteHintEl.classList.toggle('visible', visible);
   }
 
   function updateSaveBtn() {
