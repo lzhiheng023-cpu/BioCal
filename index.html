@@ -764,20 +764,48 @@ body {
     updateThemeBtn();
   });
 
-  // Fullscreen (not supported on iOS Safari, hide btn if unavailable)
+  // Fullscreen (iOS Safari / browsers without orientation lock: hide btn)
   var fsBtn = document.getElementById('btn-fullscreen');
-  if (!document.fullscreenEnabled && !document.webkitFullscreenEnabled) {
+  var fsEl = document.documentElement;
+  var hasFsApi = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
+  var hasLock = !!(window.screen && (screen.orientation && screen.orientation.lock || typeof screen.lockOrientation === 'function'));
+
+  if (!hasFsApi || !hasLock) {
     fsBtn.style.display = 'none';
   } else {
+    function lockPortrait() {
+      var so = screen.orientation;
+      if (so && so.lock) return so.lock('portrait').catch(function(){});
+      if (typeof screen.lockOrientation === 'function') {
+        try { return Promise.resolve(screen.lockOrientation('portrait')); }
+        catch(e) { return Promise.reject(e); }
+      }
+      return Promise.reject(new Error('no-lock'));
+    }
     function updateFullscreenBtn() {
       fsBtn.textContent = document.fullscreenElement ? '✕' : '⛶';
       fsBtn.classList.toggle('fs-active', !!document.fullscreenElement);
     }
     fsBtn.addEventListener('click', function() {
-      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(function(){});
-      else document.exitFullscreen();
+      if (!document.fullscreenElement) {
+        var p = fsEl.requestFullscreen ? fsEl.requestFullscreen() : fsEl.webkitRequestFullscreen();
+        p.catch(function(){ hintEl.textContent = '⚠ 全屏失败，请重试'; });
+      } else {
+        document.exitFullscreen();
+        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
+      }
     });
-    document.addEventListener('fullscreenchange', updateFullscreenBtn);
+    document.addEventListener('fullscreenchange', function() {
+      updateFullscreenBtn();
+      if (document.fullscreenElement) {
+        lockPortrait().catch(function() {
+          if (matchMedia('(pointer: coarse)').matches) {
+            document.exitFullscreen();
+            hintEl.textContent = '⚠ 当前浏览器不支持竖屏全屏，建议添加到主屏幕使用';
+          }
+        });
+      }
+    });
   }
 
   // Physical keyboard
