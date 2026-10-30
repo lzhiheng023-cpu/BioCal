@@ -223,9 +223,9 @@ body {
 .keypad-hint { text-align: center; font-size: .75rem; color: var(--text2); margin-bottom: 8px; min-height: 16px; }
 .keypad-hint.warn { color: var(--danger); }
 .keypad-hint.ok { color: var(--success); }
-.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .keypad button {
-  height: 46px; border: none; border-radius: 10px; font-size: 1.25rem;
+  height: 54px; border: none; border-radius: 10px; font-size: 1.3rem;
   font-weight: 600; cursor: pointer; background: var(--key-bg); color: var(--text);
   transition: all .1s; display: flex; align-items: center; justify-content: center;
   -webkit-tap-highlight-color: transparent;
@@ -233,7 +233,7 @@ body {
 .keypad button:active { background: var(--key-active); transform: scale(.94); }
 .keypad .key-del { background: var(--del-bg); color: var(--del-color); font-size: 1rem; }
 .keypad .key-clear {
-  grid-column: 1 / -1; height: 36px; font-size: .85rem; font-weight: 600;
+  grid-column: 1 / -1; height: 40px; font-size: .85rem; font-weight: 600;
   background: var(--dan-light); color: var(--danger); letter-spacing: .05em;
 }
 
