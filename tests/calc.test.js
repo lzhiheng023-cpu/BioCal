@@ -169,3 +169,29 @@ test('记录单位归一化不改变基准值', () => {
   assert.equal(shown, 0.75);
   closeTo(Core.toBase('V', shown, 'mL'), base);
 });
+
+test('体积记录的移液方案可保存、清洗并随记录读取', () => {
+  const split = Core.pipetteSplit(2500);
+  assert.deepEqual(split, { n: 3, eachUl: 833.3, alt: { whole: 2, restUl: 500 } });
+  assert.equal(Core.isValidPipette(split), true);
+  assert.equal(Core.isValidPipette(null), true);
+  assert.equal(Core.isValidPipette({ n: 0, eachUl: 100 }), false);
+  assert.equal(Core.isValidPipette({ n: 2, eachUl: Number.NaN }), false);
+  assert.equal(Core.isValidPipette({ n: 2, eachUl: 500, alt: { whole: 1, restUl: 1000 } }), false);
+
+  const added = Core.addHistory([], entry({ solved: 'V', V: 0.0025, pipette: split }));
+  assert.equal(added.added, true);
+  assert.deepEqual(added.list[0].pipette, split);
+
+  const cleaned = Core.sanitizeHistory([entry({ solved: 'V', V: 0.0025, pipette: split })]);
+  assert.deepEqual(cleaned[0].pipette, split);
+
+  // 损坏的移液信息只丢弃该字段，不丢整条计算记录
+  const broken = Core.sanitizeHistory([entry({ solved: 'V', V: 0.0025, pipette: { n: 0 } })]);
+  assert.equal(broken.length, 1);
+  assert.equal(broken[0].pipette, null);
+
+  // 非体积结果不保存移液信息
+  const mass = Core.addHistory([], entry({ solved: 'm', pipette: split }));
+  assert.equal(mass.list[0].pipette, null);
+});

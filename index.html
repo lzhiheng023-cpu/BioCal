@@ -35,11 +35,11 @@
   <header class="header">
     <div class="title-wrap">
       <h1>浓度计算器</h1>
-      <span class="app-version">v1.3.2</span>
+      <span class="app-version">v1.3.3</span>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="btn-history" type="button" title="计算记录" aria-label="计算记录">▤</button>
       <button class="icon-btn" id="btn-theme" type="button" title="主题：跟随系统" aria-label="主题：跟随系统">◐</button>
-      <button class="icon-btn" id="btn-fullscreen" type="button" title="全屏模式" aria-label="进入全屏">⛶</button>
       <button class="icon-btn" id="btn-clearall" type="button" title="全部清除" aria-label="全部清除">↺</button>
     </div>
   </header>
@@ -110,15 +110,18 @@
       <button class="key-del" type="button" data-key="backspace" aria-label="退格">⌫</button>
     </div>
   </div>
+</div>
 
-  <div class="history-section" id="history-section">
-    <div class="history-header">
-      <h3 id="history-title">计算记录</h3>
-      <button id="btn-clear-history" type="button">清空记录</button>
+<div class="modal" id="history-modal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="history-title" tabindex="-1">
+    <div class="modal-header">
+      <h3 class="modal-title" id="history-title">计算记录</h3>
+      <div class="modal-actions">
+        <button class="modal-clear" id="btn-clear-history" type="button">清空</button>
+        <button class="icon-btn modal-close" id="btn-close-history" type="button" aria-label="关闭">✕</button>
+      </div>
     </div>
-    <div class="history-list" id="history-list" aria-label="计算记录">
-      <div class="history-empty">暂无记录</div>
-    </div>
+    <div class="history-list" id="history-list" aria-label="计算记录"></div>
   </div>
 </div>
 

@@ -41,7 +41,10 @@
   const clearHistoryBtn = $('#btn-clear-history');
   const historyList = $('#history-list');
   const historyTitle = $('#history-title');
-  const fsBtn = $('#btn-fullscreen');
+  const historyBtn = $('#btn-history');
+  const historyModal = $('#history-modal');
+  const historyPanel = $('.modal-panel');
+  const closeHistoryBtn = $('#btn-close-history');
   const metaThemeColor = $('meta[name="theme-color"]');
 
   // ---- 状态 ----
@@ -341,8 +344,27 @@
     };
   }
 
+  /** 记录中的移液信息：优先用保存值，旧记录则按体积重算 */
+  function recordPipette(item) {
+    if (item.pipette) return item.pipette;
+    if (item.solved === 'V' && item.V > 0) return Core.pipetteSplit(item.V * 1e6);
+    return null;
+  }
+
+  function pipetteMain(pipette) {
+    return '移液 ' + Core.fmt(pipette.eachUl) + ' μL × ' + pipette.n + ' 次';
+  }
+
+  function pipetteAlt(pipette) {
+    if (!pipette.alt) return '';
+    return '备选 1000 μL × ' + pipette.alt.whole + ' 次 + ' +
+      Core.fmt(pipette.alt.restUl) + ' μL × 1 次';
+  }
+
   function renderHistory() {
     historyTitle.textContent = '计算记录 (' + records.length + '/' + Core.MAX_HISTORY + ')';
+    historyBtn.title = '计算记录（' + records.length + '）';
+    historyBtn.setAttribute('aria-label', '计算记录（' + records.length + ' 条）');
     historyList.textContent = '';
 
     if (records.length === 0) {
@@ -378,6 +400,21 @@
       const sub = document.createElement('span');
       sub.textContent = parts.join(', ');
       vals.appendChild(sub);
+
+      const pipette = recordPipette(item);
+      if (pipette) {
+        const main = document.createElement('span');
+        main.className = 'hi-pipette';
+        main.textContent = pipetteMain(pipette);
+        vals.appendChild(main);
+
+        if (pipette.alt) {
+          const alt = document.createElement('span');
+          alt.className = 'hi-pipette alt';
+          alt.textContent = pipetteAlt(pipette);
+          vals.appendChild(alt);
+        }
+      }
 
       const time = document.createElement('div');
       time.className = 'hi-solved';
@@ -415,7 +452,9 @@
       M: currentCalc.M,
       solved: derivedField,
       units: { c: unitState.c, V: unitState.V, m: unitState.m },
-      ts: Date.now()
+      ts: Date.now(),
+      // 体积结果同时保存移液方案，避免回看时信息缺失
+      pipette: derivedField === 'V' ? Core.pipetteSplit(currentCalc.V * 1e6) : null
     };
 
     const result = Core.addHistory(records, entry);
@@ -430,7 +469,7 @@
     if (!saved) return;
 
     saveBtn.classList.add('saved');
-    saveBtn.textContent = '✓ 已保存';
+    saveBtn.textContent = '已保存';
     window.setTimeout(function () {
       saveBtn.classList.remove('saved');
       saveBtn.textContent = '保存';
@@ -443,6 +482,24 @@
     renderHistory();
   }
 
+  // ---- 记录弹窗 ----
+  let lastFocused = null;
+
+  function openHistory() {
+    lastFocused = document.activeElement;
+    renderHistory();
+    historyModal.classList.add('open');
+    document.body.classList.add('modal-open');
+    historyPanel.focus();
+  }
+
+  function closeHistory() {
+    if (!historyModal.classList.contains('open')) return;
+    historyModal.classList.remove('open');
+    document.body.classList.remove('modal-open');
+    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+  }
+
   // ---- 清空 ----
   function clearAllInputs() {
     Object.keys(inputs).forEach(function (f) { inputs[f].value = ''; });
@@ -451,73 +508,6 @@
     updateDerivedStyle();
     updateActiveStyles();
     updateMStatus();
-  }
-
-  // ---- 全屏 + 竖屏锁定（能力不足时直接隐藏入口） ----
-  const fsEl = document.documentElement;
-  const hasFsApi = !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen);
-  const hasLock = !!(window.screen &&
-    ((screen.orientation && screen.orientation.lock) || typeof screen.lockOrientation === 'function'));
-
-  function fullscreenElement() {
-    return document.fullscreenElement || document.webkitFullscreenElement || null;
-  }
-
-  function updateFullscreenBtn() {
-    const active = !!fullscreenElement();
-    fsBtn.textContent = active ? '✕' : '⛶';
-    fsBtn.classList.toggle('fs-active', active);
-    fsBtn.title = active ? '退出全屏' : '全屏模式';
-    fsBtn.setAttribute('aria-label', fsBtn.title);
-  }
-
-  function lockPortrait() {
-    const so = screen.orientation;
-    if (so && so.lock) return so.lock('portrait').catch(function () {});
-    if (typeof screen.lockOrientation === 'function') {
-      try {
-        return Promise.resolve(screen.lockOrientation('portrait'));
-      } catch (e) {
-        return Promise.reject(e);
-      }
-    }
-    return Promise.reject(new Error('no-lock'));
-  }
-
-  if (!hasFsApi || !hasLock) {
-    fsBtn.style.display = 'none';
-  } else {
-    updateFullscreenBtn();
-
-    fsBtn.addEventListener('click', function () {
-      if (!fullscreenElement()) {
-        const request = fsEl.requestFullscreen
-          ? fsEl.requestFullscreen()
-          : fsEl.webkitRequestFullscreen();
-        Promise.resolve(request).catch(function () {
-          showHint('⚠ 全屏失败，请重试', 'warn');
-        });
-      } else if (document.exitFullscreen) {
-        document.exitFullscreen();
-        if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      }
-    });
-
-    const onFullscreenChange = function () {
-      updateFullscreenBtn();
-      if (!fullscreenElement()) return;
-      lockPortrait().catch(function () {
-        if (window.matchMedia('(pointer: coarse)').matches) {
-          if (document.exitFullscreen) document.exitFullscreen();
-          showHint('⚠ 当前浏览器不支持竖屏全屏，建议添加到主屏幕使用', 'warn');
-        }
-      });
-    };
-
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
   }
 
   // ---- 事件绑定 ----
@@ -552,17 +542,30 @@
 
   clearHistoryBtn.addEventListener('click', clearHistory);
 
+  historyBtn.addEventListener('click', openHistory);
+  closeHistoryBtn.addEventListener('click', closeHistory);
+  historyModal.addEventListener('click', function (e) {
+    if (e.target === historyModal) closeHistory();
+  });
+
   historyList.addEventListener('click', function (e) {
     const btn = e.target.closest('.history-item');
     if (!btn) return;
     const item = records[Number(btn.dataset.idx)];
-    if (item) loadRecord(item);
+    if (!item) return;
+    loadRecord(item);
+    closeHistory();
   });
 
   document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && historyModal.classList.contains('open')) {
+      closeHistory();
+      return;
+    }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const target = e.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+    if (historyModal.classList.contains('open')) return;
 
     if (e.key >= '0' && e.key <= '9') { handleKeyPress(e.key); return; }
     if (e.key === '.') { handleKeyPress('.'); return; }

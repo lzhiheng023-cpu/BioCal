@@ -7,9 +7,9 @@
 - **智能计算** — 摩尔质量 M 作为化合物已知量手动输入，在 c / V / m 中填 2 项点击计算即可
 - **自定义数字键盘** — 不调用系统键盘，避免遮挡页面，适合单手操作
 - **iOS 风格单位滑块** — 浓度 (M / mM / μM)、体积 (L / mL)、质量 (g / mg) 带弹簧动画切换
-- **移液提示** — 求出体积后，按 1000 μL 移液器给出移液次数建议
+- **移液提示** — 求出体积后，按 1000 μL 移液器给出移液次数建议，并随记录一并保存
 - **主题三态** — 跟随系统 / 浅色 / 深色，随系统外观实时切换
-- **计算记录** — 手动保存，上限 10 条，存储在浏览器本地
+- **计算记录** — 右上角按钮弹出记录面板，点击任意记录即可回填输入区；上限 10 条，存储在浏览器本地
 - **PWA 离线可用** — 首次访问自动缓存，之后可离线使用；支持添加到手机主屏幕
 
 ## 技术栈
@@ -22,8 +22,8 @@
 | 逻辑 | 原生 JavaScript（ES2017），无框架、无打包器 |
 | 计算核心 | `calc.js` 纯函数模块，同时支持浏览器全局与 Node `require` |
 | 离线 / 安装 | Web App Manifest + Service Worker（导航 network-first，静态资源 stale-while-revalidate） |
-| 持久化 | `localStorage`（读写容错、记录结构校验） |
-| 设备能力 | Fullscreen API、Screen Orientation API（能力不足时自动隐藏入口） |
+| 持久化 | `localStorage`（读写容错、记录结构校验，体积记录含移液方案） |
+| 弹窗 | 原生 DOM 遮罩层 + `role="dialog"`，支持 Esc/点击遮罩关闭与焦点还原 |
 | 部署 | GitHub Pages 静态托管，运行时零网络请求 |
 
 ## 目录结构
@@ -32,7 +32,7 @@
 index.html            页面结构（只保留标记与首屏主题引导）
 styles.css            样式与主题变量
 calc.js               计算核心：公式、单位、格式化、移液拆分、记录清洗
-app.js                界面与交互：输入状态、键盘、记录、主题、全屏
+app.js                界面与交互：输入状态、键盘、记录弹窗、主题
 sw.js                 Service Worker：预缓存、离线回退、后台更新
 manifest.json         PWA 元数据（id / scope / 图标）
 icons/                SVG 源文件、PNG（192/512）、maskable、apple-touch-icon
@@ -68,4 +68,4 @@ npm run check   # 语法检查
 
 ## 兼容性
 
-Chrome / Edge / Safari 15.4+（`100dvh`）、iOS 15.4+。全屏与竖屏锁定仅在支持的浏览器上显示入口。
+Chrome / Edge / Safari 15.4+（`100dvh`）、iOS 15.4+。

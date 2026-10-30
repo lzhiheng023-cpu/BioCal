@@ -88,7 +88,6 @@ body {
   box-shadow: var(--shadow); transition: all .15s;
 }
 .icon-btn:active { background: var(--key-active); transform: scale(.94); }
-.icon-btn.fs-active { background: var(--pri-light); color: var(--primary); }
 
 /* Card */
 .card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
@@ -107,18 +106,20 @@ body {
 .field-side {
   grid-column: 2;
   grid-row: 1;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: flex-start;
-  gap: 5px;
+  gap: 6px;
   min-width: 0;
 }
 .field-side label {
-  font-size: .78rem; font-weight: 600; color: var(--text2);
+  font-size: .84rem; font-weight: 600; color: var(--text2);
   line-height: 1.1; white-space: nowrap;
 }
 .field-side label em {
-  font-style: italic; color: var(--text); font-size: .86rem;
+  font-style: italic; color: var(--text); font-size: .92rem;
   font-family: 'Times New Roman', Times, serif;
 }
 
@@ -147,8 +148,8 @@ body {
 .input-group input {
   grid-column: 1;
   grid-row: 1;
-  width: 100%; min-width: 0; padding: 10px 12px; border: 2px solid var(--border);
-  border-radius: 10px; font-size: 1.12rem; font-weight: 500;
+  width: 100%; min-width: 0; padding: 13px 12px; border: 2px solid var(--border);
+  border-radius: 10px; font-size: 1.16rem; font-weight: 500;
   font-variant-numeric: tabular-nums; background: var(--input-bg);
   color: var(--text); font-family: 'Times New Roman', Times, serif;
   transition: border-color .15s, box-shadow .15s, background .15s;
@@ -195,9 +196,11 @@ body {
 /* Buttons row */
 .btn-row { display: flex; gap: 8px; margin-top: 8px; }
 .btn-calc, .btn-save {
-  flex: 1; padding: 10px; border-radius: 10px; font-size: .85rem;
+  min-width: 0; padding: 10px; border-radius: 10px; font-size: .85rem;
   font-weight: 600; cursor: pointer; transition: all .15s; border: 1.5px solid transparent;
 }
+.btn-calc { flex: 0 0 calc(75% - 6px); }
+.btn-save { flex: 0 0 calc(25% - 2px); }
 .btn-calc {
   background: var(--primary); color: #fff; border-color: var(--primary);
 }
@@ -213,6 +216,7 @@ body {
 .btn-save:active { transform: scale(.97); }
 .btn-save.saved {
   border-color: var(--success); background: var(--suc-light); color: var(--success);
+  font-size: .8rem;
 }
 
 /* Keypad */
@@ -237,18 +241,50 @@ body {
   background: var(--dan-light); color: var(--danger); letter-spacing: .05em;
 }
 
-/* History */
-.history-section { background: var(--card); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
-.history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-.history-header h3 { font-size: .9rem; font-weight: 600; }
-.history-header button {
-  font-size: .75rem; border: none; background: none; color: var(--danger);
-  cursor: pointer; padding: 4px 8px; border-radius: 6px; transition: background .1s;
+/* 计算记录弹窗 */
+body.modal-open { overflow: hidden; }
+
+.modal {
+  position: fixed; inset: 0; z-index: 100;
+  display: none; align-items: center; justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, .5);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
-.history-header button:active { background: var(--dan-light); }
+.modal.open { display: flex; }
+[data-theme="dark"] .modal { background: rgba(0, 0, 0, .6); }
+
+.modal-panel {
+  width: 100%; max-width: 360px; max-height: 72dvh;
+  display: flex; flex-direction: column;
+  background: var(--card); border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .3);
+}
+.modal-panel:focus { outline: none; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; margin-bottom: 10px;
+}
+.modal-title { font-size: .95rem; font-weight: 700; }
+.modal-actions { display: flex; align-items: center; gap: 4px; }
+.modal-clear {
+  border: none; background: none; color: var(--danger);
+  font-size: .78rem; font-weight: 600; cursor: pointer;
+  padding: 6px 8px; border-radius: 6px; transition: background .1s;
+}
+.modal-clear:active { background: var(--dan-light); }
+.modal-close {
+  width: 32px; height: 32px; font-size: .95rem;
+  background: var(--input-bg); box-shadow: none;
+}
+
+/* 记录列表 */
 .history-list {
+  flex: 1 1 auto; min-height: 0;
   display: flex; flex-direction: column; gap: 6px;
-  max-height: 200px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
 }
 .history-item {
   width: 100%; text-align: left; font: inherit; color: inherit;
@@ -257,10 +293,11 @@ body {
   cursor: pointer; transition: background .12s; font-size: .82rem; border: 1px solid transparent;
 }
 .history-item:active { background: var(--pri-light); border-color: var(--primary); }
-.history-item .hi-vals { display: flex; flex-direction: column; gap: 2px; }
+.history-item .hi-vals { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .history-item .hi-vals span { font-size: .73rem; color: var(--text2); }
+.history-item .hi-pipette { font-size: .7rem; color: var(--text2); }
 .history-item .hi-solved { font-size: .7rem; color: var(--success); font-weight: 600; white-space: nowrap; }
-.history-empty { text-align: center; font-size: .8rem; color: var(--text2); padding: 12px 0; }
+.history-empty { text-align: center; font-size: .8rem; color: var(--text2); padding: 18px 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

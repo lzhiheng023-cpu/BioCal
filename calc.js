@@ -157,6 +157,28 @@
     return out;
   }
 
+  /** 移液方案结构校验：允许为空，非空时必须是 pipetteSplit 的合法输出 */
+  function isValidPipette(p) {
+    if (p === null || p === undefined) return true;
+    if (typeof p !== 'object') return false;
+    if (!Number.isInteger(p.n) || p.n < 1) return false;
+    if (typeof p.eachUl !== 'number' || !isFinite(p.eachUl) || p.eachUl <= 0) return false;
+    if (p.alt === null || p.alt === undefined) return true;
+    if (typeof p.alt !== 'object') return false;
+    return Number.isInteger(p.alt.whole) && p.alt.whole >= 1 &&
+      typeof p.alt.restUl === 'number' && isFinite(p.alt.restUl) &&
+      p.alt.restUl > 0 && p.alt.restUl < 1000;
+  }
+
+  function sanitizePipette(p) {
+    if (!isValidPipette(p) || p === null || p === undefined) return null;
+    return {
+      n: p.n,
+      eachUl: p.eachUl,
+      alt: p.alt ? { whole: p.alt.whole, restUl: p.alt.restUl } : null
+    };
+  }
+
   /** 单条记录结构校验（数值均为基准单位） */
   function isValidEntry(e) {
     if (!e || typeof e !== 'object') return false;
@@ -182,7 +204,8 @@
           M: e.M,
           solved: e.solved,
           units: sanitizeUnits(e.units),
-          ts: e.ts
+          ts: e.ts,
+          pipette: sanitizePipette(e.pipette)
         };
       });
   }
@@ -196,8 +219,20 @@
   function addHistory(list, entry) {
     const next = Array.isArray(list) ? list.slice() : [];
     if (!isValidEntry(entry)) return { list: next, added: false };
-    if (sameEntry(next[0], entry)) return { list: next, added: false };
-    next.unshift(entry);
+
+    const clean = {
+      c: entry.c,
+      V: entry.V,
+      m: entry.m,
+      M: entry.M,
+      solved: entry.solved,
+      units: sanitizeUnits(entry.units),
+      ts: entry.ts,
+      pipette: entry.solved === 'V' ? sanitizePipette(entry.pipette) : null
+    };
+
+    if (sameEntry(next[0], clean)) return { list: next, added: false };
+    next.unshift(clean);
     if (next.length > MAX_HISTORY) next.length = MAX_HISTORY;
     return { list: next, added: true };
   }
@@ -230,6 +265,8 @@
     pipetteSplit: pipetteSplit,
     relativeTime: relativeTime,
     sanitizeUnits: sanitizeUnits,
+    isValidPipette: isValidPipette,
+    sanitizePipette: sanitizePipette,
     sanitizeHistory: sanitizeHistory,
     addHistory: addHistory,
     isValidEntry: isValidEntry,
