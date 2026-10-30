@@ -23,6 +23,7 @@
 
   // ---- DOM ----
   const $ = (sel) => document.querySelector(sel);
+  const appEl = $('.app');
   const inputs = {
     c: $('#input-c'),
     V: $('#input-v'),
@@ -501,6 +502,7 @@
   let lastFocused = null;
 
   function openModal(modal, panel) {
+    resetBounce();
     lastFocused = document.activeElement;
     modal.classList.add('open');
     document.body.classList.add('modal-open');
@@ -626,6 +628,120 @@
     }
   }
 
+  // ---- 无滚动余量时的跟手阻尼 + 弹簧回中 ----
+  const motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  const BOUNCE_LIMIT = 96;
+  let bounceEnabled = false;
+  let bounceOffset = 0;
+  let bounceVelocity = 0;
+  let bounceRaf = 0;
+  let bounceLastFrame = 0;
+  let dragState = null;
+  let wheelTimer = 0;
+
+  function hasOpenModal() {
+    return !!document.querySelector('.modal.open');
+  }
+
+  function applyBounce(value) {
+    bounceOffset = value;
+    if (Math.abs(value) < 0.05) {
+      bounceOffset = 0;
+      appEl.style.transform = '';
+      appEl.style.willChange = '';
+      return;
+    }
+    appEl.style.transform = 'translate3d(0, ' + value.toFixed(2) + 'px, 0)';
+    appEl.style.willChange = 'transform';
+  }
+
+  function resetBounce() {
+    if (bounceRaf) cancelAnimationFrame(bounceRaf);
+    bounceRaf = 0;
+    bounceVelocity = 0;
+    bounceLastFrame = 0;
+    dragState = null;
+    applyBounce(0);
+  }
+
+  function updateBounceState() {
+    const fits = document.documentElement.scrollHeight <= window.innerHeight + 1;
+    bounceEnabled = fits && !(motionQuery && motionQuery.matches);
+    if (!bounceEnabled) resetBounce();
+  }
+
+  function bounceResistance(dy) {
+    const abs = Math.abs(dy);
+    const value = (abs * BOUNCE_LIMIT) / (BOUNCE_LIMIT + abs * 0.65);
+    return Math.sign(dy) * Math.min(BOUNCE_LIMIT, value);
+  }
+
+  function bounceSpringFrame(now) {
+    if (!bounceLastFrame) bounceLastFrame = now;
+    const dt = Math.min(0.032, (now - bounceLastFrame) / 1000);
+    bounceLastFrame = now;
+
+    const accel = -220 * bounceOffset - 20 * bounceVelocity;
+    bounceVelocity += accel * dt;
+    bounceOffset += bounceVelocity * dt;
+
+    if (Math.abs(bounceOffset) < 0.4 && Math.abs(bounceVelocity) < 1.5) {
+      bounceRaf = 0;
+      bounceLastFrame = 0;
+      applyBounce(0);
+      return;
+    }
+
+    appEl.style.transform = 'translate3d(0, ' + bounceOffset.toFixed(2) + 'px, 0)';
+    appEl.style.willChange = 'transform';
+    bounceRaf = requestAnimationFrame(bounceSpringFrame);
+  }
+
+  function startBounceSpring() {
+    if (!bounceOffset) return;
+    if (bounceRaf) cancelAnimationFrame(bounceRaf);
+    bounceLastFrame = 0;
+    bounceRaf = requestAnimationFrame(bounceSpringFrame);
+  }
+
+  function onTouchStart(e) {
+    if (!bounceEnabled || hasOpenModal() || e.touches.length !== 1) return;
+    resetBounce();
+    dragState = { startY: e.touches[0].clientY, engaged: false };
+  }
+
+  function onTouchMove(e) {
+    if (!dragState || !bounceEnabled || e.touches.length !== 1) return;
+    const dy = e.touches[0].clientY - dragState.startY;
+    if (!dragState.engaged) {
+      if (Math.abs(dy) < 10) return;
+      dragState.engaged = true;
+    }
+    if (e.cancelable) e.preventDefault();
+    bounceVelocity = 0;
+    applyBounce(bounceResistance(dy));
+  }
+
+  function onTouchEnd() {
+    if (!dragState) return;
+    const engaged = dragState.engaged;
+    dragState = null;
+    if (engaged) startBounceSpring();
+  }
+
+  function onWheel(e) {
+    if (!bounceEnabled || hasOpenModal() || e.ctrlKey) return;
+    e.preventDefault();
+    if (bounceRaf) {
+      cancelAnimationFrame(bounceRaf);
+      bounceRaf = 0;
+    }
+    const next = bounceOffset + e.deltaY * 0.35;
+    applyBounce(Math.max(-BOUNCE_LIMIT, Math.min(BOUNCE_LIMIT, next)));
+    window.clearTimeout(wheelTimer);
+    wheelTimer = window.setTimeout(startBounceSpring, 140);
+  }
+
   // ---- 清空 ----
   function clearAllInputs() {
     Object.keys(inputs).forEach(function (f) { inputs[f].value = ''; });
@@ -706,6 +822,17 @@
     showHint('已清空当前输入', 'ok');
   });
 
+  document.addEventListener('touchstart', onTouchStart, { passive: true });
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+  document.addEventListener('touchcancel', onTouchEnd);
+  window.addEventListener('wheel', onWheel, { passive: false });
+
+  if (motionQuery) {
+    if (motionQuery.addEventListener) motionQuery.addEventListener('change', updateBounceState);
+    else if (motionQuery.addListener) motionQuery.addListener(updateBounceState);
+  }
+
   historyList.addEventListener('click', function (e) {
     const btn = e.target.closest('.history-item');
     if (!btn) return;
@@ -733,9 +860,16 @@
     if (e.key === 'Enter') { doCalculate(); }
   });
 
-  window.addEventListener('resize', updateSegSliders);
+  window.addEventListener('resize', function () {
+    updateSegSliders();
+    updateBounceState();
+  });
+  window.addEventListener('orientationchange', updateBounceState);
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(updateSegSliders).catch(function () {});
+    document.fonts.ready.then(function () {
+      updateSegSliders();
+      updateBounceState();
+    }).catch(function () {});
   }
 
   // ---- 初始化 ----
@@ -749,6 +883,7 @@
   updateActiveStyles();
   updateDerivedStyle();
   updateMStatus();
+  updateBounceState();
 
   // ---- Service Worker（file:// 下跳过） ----
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
