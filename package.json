@@ -1,0 +1,13 @@
+{
+  "name": "biocal",
+  "version": "1.3.0",
+  "private": true,
+  "description": "面向有机合成实验的移动端化学浓度计算器（PWA，零依赖）",
+  "scripts": {
+    "test": "node tests/calc.test.js",
+    "check": "node --check calc.js && node --check app.js && node --check sw.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
