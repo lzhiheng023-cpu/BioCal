@@ -8,7 +8,7 @@
 
 'use strict';
 
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE = 'chemcalc-' + VERSION;
 
 const PRECACHE = [

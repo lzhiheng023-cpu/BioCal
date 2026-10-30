@@ -60,7 +60,7 @@ body {
   padding-left: calc(12px + env(safe-area-inset-left, 0px));
 }
 
-.app { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 14px; }
+.app { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; }
 
 /* 键盘 / 触屏焦点样式 */
 :where(button, input):focus-visible {
@@ -71,7 +71,7 @@ body {
 /* Header */
 .header {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 4px 4px 0;
+  padding: 2px 2px 0;
 }
 .header h1 {
   font-size: 1.25rem; font-weight: 700; letter-spacing: -.02em;
@@ -91,16 +91,36 @@ body {
 .icon-btn.fs-active { background: var(--pri-light); color: var(--primary); }
 
 /* Card */
-.card { background: var(--card); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+.card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
 
-/* Input groups */
-.input-group { margin-bottom: 14px; }
-.input-group:last-of-type { margin-bottom: 0; }
-.input-header {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;
+/* Input groups：输入框在左，标签与单位在右侧纵向排列 */
+.input-group {
+  --side-width: 96px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side-width);
+  column-gap: 10px;
+  align-items: center;
+  margin-bottom: 9px;
 }
-.input-header label { font-size: .82rem; font-weight: 600; color: var(--text2); }
-.input-header label em { font-style: italic; color: var(--text); font-size: .9rem; font-family: 'Times New Roman', Times, serif; }
+.input-group:last-of-type { margin-bottom: 0; }
+
+.field-side {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+}
+.field-side label {
+  font-size: .78rem; font-weight: 600; color: var(--text2);
+  line-height: 1.1; white-space: nowrap;
+}
+.field-side label em {
+  font-style: italic; color: var(--text); font-size: .86rem;
+  font-family: 'Times New Roman', Times, serif;
+}
 
 /* iOS segmented control */
 .segmented {
@@ -117,7 +137,7 @@ body {
 }
 .seg-option {
   position: relative; z-index: 1; border: none; background: transparent;
-  padding: 2px 10px; font-size: .65rem; font-weight: 500;
+  padding: 3px 8px; font-size: .63rem; font-weight: 500;
   color: var(--text2); cursor: pointer; border-radius: 6px;
   transition: color .2s; white-space: nowrap;
 }
@@ -125,8 +145,10 @@ body {
 [data-theme="dark"] .seg-option.active { color: #fff; }
 
 .input-group input {
-  width: 100%; padding: 12px 14px; border: 2px solid var(--border);
-  border-radius: 10px; font-size: 1.15rem; font-weight: 500;
+  grid-column: 1;
+  grid-row: 1;
+  width: 100%; min-width: 0; padding: 10px 12px; border: 2px solid var(--border);
+  border-radius: 10px; font-size: 1.12rem; font-weight: 500;
   font-variant-numeric: tabular-nums; background: var(--input-bg);
   color: var(--text); font-family: 'Times New Roman', Times, serif;
   transition: border-color .15s, box-shadow .15s, background .15s;
@@ -147,34 +169,31 @@ body {
 
 /* Pipette hint */
 .pipette-hint {
-  display: none; margin-top: 8px; padding: 7px 10px;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: none; margin-top: 6px; padding: 6px 10px;
   background: var(--suc-light); border-radius: 8px;
   font-size: .72rem; color: var(--success); line-height: 1.5;
 }
 .pipette-hint.visible { display: block; }
 .pipette-hint .alt { display: block; margin-top: 2px; color: var(--text2); }
 
-/* M section */
-.input-group.input-molar {
-  background: var(--warn-light); border: 1.5px solid var(--molar-border);
-  border-radius: 10px; padding: 12px 14px;
+/* M section：用输入框与标签的琥珀色区分“已知量”，不再额外包一层容器 */
+.input-group.input-molar .field-side label { color: var(--warn); }
+.input-group.input-molar .known-badge {
+  font-size: .6rem; background: #fef3c7; color: var(--warn);
+  padding: 2px 7px; border-radius: 20px; font-weight: 600; letter-spacing: .03em;
 }
-.input-group.input-molar .input-header label { color: var(--warn); }
-.input-group.input-molar .input-header .known-badge {
-  font-size: .65rem; background: #fef3c7; color: var(--warn);
-  padding: 2px 8px; border-radius: 20px; font-weight: 600; letter-spacing: .03em;
-}
-[data-theme="dark"] .input-group.input-molar .input-header .known-badge { background: #78350f; color: var(--warn); }
+[data-theme="dark"] .input-group.input-molar .known-badge { background: #78350f; color: var(--warn); }
 .input-group.input-molar input { border-color: var(--molar-border); background: var(--molar-input-bg); }
 .input-group.input-molar input::placeholder { color: var(--molar-placeholder); }
 .input-group.input-molar.active input {
   border-color: var(--warn); box-shadow: 0 0 0 3px rgba(217,119,6,.12);
 }
-[data-theme="dark"] .input-group.input-molar { background: var(--warn-light); }
 [data-theme="dark"] .input-group.input-molar.active input { box-shadow: 0 0 0 3px rgba(251,191,36,.18); }
 
 /* Buttons row */
-.btn-row { display: flex; gap: 8px; margin-top: 6px; }
+.btn-row { display: flex; gap: 8px; margin-top: 8px; }
 .btn-calc, .btn-save {
   flex: 1; padding: 10px; border-radius: 10px; font-size: .85rem;
   font-weight: 600; cursor: pointer; transition: all .15s; border: 1.5px solid transparent;
@@ -199,14 +218,14 @@ body {
 /* Keypad */
 .keypad-wrap {
   background: var(--card); border-radius: var(--radius);
-  padding: 14px 16px; box-shadow: var(--shadow);
+  padding: 12px; box-shadow: var(--shadow);
 }
-.keypad-hint { text-align: center; font-size: .75rem; color: var(--text2); margin-bottom: 10px; min-height: 18px; }
+.keypad-hint { text-align: center; font-size: .75rem; color: var(--text2); margin-bottom: 8px; min-height: 16px; }
 .keypad-hint.warn { color: var(--danger); }
 .keypad-hint.ok { color: var(--success); }
-.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
 .keypad button {
-  height: 50px; border: none; border-radius: 10px; font-size: 1.25rem;
+  height: 46px; border: none; border-radius: 10px; font-size: 1.25rem;
   font-weight: 600; cursor: pointer; background: var(--key-bg); color: var(--text);
   transition: all .1s; display: flex; align-items: center; justify-content: center;
   -webkit-tap-highlight-color: transparent;
@@ -214,13 +233,13 @@ body {
 .keypad button:active { background: var(--key-active); transform: scale(.94); }
 .keypad .key-del { background: var(--del-bg); color: var(--del-color); font-size: 1rem; }
 .keypad .key-clear {
-  grid-column: 1 / -1; height: 40px; font-size: .85rem; font-weight: 600;
+  grid-column: 1 / -1; height: 36px; font-size: .85rem; font-weight: 600;
   background: var(--dan-light); color: var(--danger); letter-spacing: .05em;
 }
 
 /* History */
-.history-section { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
-.history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.history-section { background: var(--card); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+.history-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .history-header h3 { font-size: .9rem; font-weight: 600; }
 .history-header button {
   font-size: .75rem; border: none; background: none; color: var(--danger);
@@ -241,7 +260,7 @@ body {
 .history-item .hi-vals { display: flex; flex-direction: column; gap: 2px; }
 .history-item .hi-vals span { font-size: .73rem; color: var(--text2); }
 .history-item .hi-solved { font-size: .7rem; color: var(--success); font-weight: 600; white-space: nowrap; }
-.history-empty { text-align: center; font-size: .8rem; color: var(--text2); padding: 16px 0; }
+.history-empty { text-align: center; font-size: .8rem; color: var(--text2); padding: 12px 0; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

@@ -35,7 +35,7 @@
   <header class="header">
     <div class="title-wrap">
       <h1>浓度计算器</h1>
-      <span class="app-version">v1.3.0</span>
+      <span class="app-version">v1.3.1</span>
     </div>
     <div class="header-actions">
       <button class="icon-btn" id="btn-theme" type="button" title="主题：跟随系统" aria-label="主题：跟随系统">◐</button>
@@ -47,15 +47,16 @@
   <div class="card" id="input-card">
 
     <div class="input-group input-molar" data-field="M">
-      <div class="input-header">
+      <input type="text" inputmode="none" readonly id="input-molar" data-field="M" placeholder="输入摩尔质量">
+      <div class="field-side">
         <label for="input-molar">摩尔质量 <em>M</em></label>
         <span class="known-badge">已知量</span>
       </div>
-      <input type="text" inputmode="none" readonly id="input-molar" data-field="M" placeholder="请输入化合物摩尔质量">
     </div>
 
     <div class="input-group" data-field="c">
-      <div class="input-header">
+      <input type="text" inputmode="none" readonly id="input-c" data-field="c" placeholder="0">
+      <div class="field-side">
         <label for="input-c">浓度 <em>c</em></label>
         <div class="segmented" data-unit-field="c">
           <div class="seg-slider"></div>
@@ -64,11 +65,11 @@
           <button class="seg-option" type="button" data-unit="μM">μM</button>
         </div>
       </div>
-      <input type="text" inputmode="none" readonly id="input-c" data-field="c" placeholder="0">
     </div>
 
     <div class="input-group" data-field="V">
-      <div class="input-header">
+      <input type="text" inputmode="none" readonly id="input-v" data-field="V" placeholder="0">
+      <div class="field-side">
         <label for="input-v">体积 <em>V</em></label>
         <div class="segmented" data-unit-field="V">
           <div class="seg-slider"></div>
@@ -76,12 +77,12 @@
           <button class="seg-option active" type="button" data-unit="mL">mL</button>
         </div>
       </div>
-      <input type="text" inputmode="none" readonly id="input-v" data-field="V" placeholder="0">
       <div class="pipette-hint" id="pipette-hint"></div>
     </div>
 
     <div class="input-group" data-field="m">
-      <div class="input-header">
+      <input type="text" inputmode="none" readonly id="input-m" data-field="m" placeholder="0">
+      <div class="field-side">
         <label for="input-m">质量 <em>m</em></label>
         <div class="segmented" data-unit-field="m">
           <div class="seg-slider"></div>
@@ -89,7 +90,6 @@
           <button class="seg-option active" type="button" data-unit="mg">mg</button>
         </div>
       </div>
-      <input type="text" inputmode="none" readonly id="input-m" data-field="m" placeholder="0">
     </div>
 
     <div class="btn-row">
