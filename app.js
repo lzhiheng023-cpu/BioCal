@@ -8,11 +8,16 @@
   const Core = window.CalcCore;
   if (!Core) return;
 
-  const KEYS = { theme: 'chemcalc_theme', history: 'chemcalc_v4' };
+  const KEYS = {
+    theme: 'chemcalc_theme',
+    history: 'chemcalc_v4',
+    wallpaper: 'chemcalc_wallpaper'
+  };
   const FIELDS = Core.FIELDS;
   const FIELD_NAMES = { c: '浓度 c', V: '体积 V', m: '质量 m', M: '摩尔质量 M' };
   const THEME_ICONS = { auto: '◐', light: '☾', dark: '☀' };
   const THEME_LABELS = { auto: '主题：跟随系统', light: '主题：浅色', dark: '主题：深色' };
+  const THEME_VALUES = { auto: '跟随系统', light: '浅色', dark: '深色' };
   const THEME_NEXT = { auto: 'light', light: 'dark', dark: 'auto' };
   const THEME_COLORS = { light: '#f0f4f8', dark: '#0f172a' };
 
@@ -36,15 +41,28 @@
   const pipetteEl = $('#pipette-hint');
   const calcBtn = $('#btn-calc');
   const saveBtn = $('#btn-save');
-  const themeBtn = $('#btn-theme');
-  const clearAllBtn = $('#btn-clearall');
   const clearHistoryBtn = $('#btn-clear-history');
   const historyList = $('#history-list');
   const historyTitle = $('#history-title');
-  const historyBtn = $('#btn-history');
   const historyModal = $('#history-modal');
-  const historyPanel = $('.modal-panel');
+  const historyPanel = $('#history-modal .modal-panel');
   const closeHistoryBtn = $('#btn-close-history');
+
+  const settingsBtn = $('#btn-settings');
+  const settingsModal = $('#settings-modal');
+  const settingsPanel = $('#settings-modal .modal-panel');
+  const closeSettingsBtn = $('#btn-close-settings');
+  const settingsHistory = $('#settings-history');
+  const settingsHistoryCount = $('#settings-history-count');
+  const settingsSkin = $('#settings-skin');
+  const settingsSkinState = $('#settings-skin-state');
+  const settingsSkinClear = $('#settings-skin-clear');
+  const settingsTheme = $('#settings-theme');
+  const settingsThemeIcon = $('#settings-theme-icon');
+  const settingsThemeValue = $('#settings-theme-value');
+  const settingsClearAll = $('#settings-clearall');
+  const wallpaperInput = $('#wallpaper-input');
+  const wallpaperEl = $('#wallpaper');
   const metaThemeColor = $('meta[name="theme-color"]');
 
   // ---- 状态 ----
@@ -54,6 +72,7 @@
   let unitState = Object.assign({}, Core.DEFAULT_UNITS);
   let themeMode = 'auto';
   let records = [];
+  let wallpaper = '';
 
   // ---- 本地存储（隐私模式 / 配额满时不抛错） ----
   function readRaw(key) {
@@ -100,11 +119,8 @@
     const theme = effectiveTheme();
     document.documentElement.setAttribute('data-theme', theme);
     if (metaThemeColor) metaThemeColor.setAttribute('content', THEME_COLORS[theme]);
-    if (themeBtn) {
-      themeBtn.textContent = THEME_ICONS[themeMode];
-      themeBtn.title = THEME_LABELS[themeMode];
-      themeBtn.setAttribute('aria-label', THEME_LABELS[themeMode]);
-    }
+    if (settingsThemeIcon) settingsThemeIcon.textContent = THEME_ICONS[themeMode];
+    if (settingsThemeValue) settingsThemeValue.textContent = THEME_VALUES[themeMode];
   }
 
   function onSystemThemeChange() {
@@ -363,8 +379,7 @@
 
   function renderHistory() {
     historyTitle.textContent = '计算记录 (' + records.length + '/' + Core.MAX_HISTORY + ')';
-    historyBtn.title = '计算记录（' + records.length + '）';
-    historyBtn.setAttribute('aria-label', '计算记录（' + records.length + ' 条）');
+    settingsHistoryCount.textContent = records.length ? records.length + ' 条记录' : '暂无记录';
     historyList.textContent = '';
 
     if (records.length === 0) {
@@ -482,22 +497,133 @@
     renderHistory();
   }
 
-  // ---- 记录弹窗 ----
+  // ---- 弹窗 ----
   let lastFocused = null;
 
-  function openHistory() {
+  function openModal(modal, panel) {
     lastFocused = document.activeElement;
-    renderHistory();
-    historyModal.classList.add('open');
+    modal.classList.add('open');
     document.body.classList.add('modal-open');
-    historyPanel.focus();
+    if (panel) panel.focus();
+  }
+
+  function closeModal(modal) {
+    if (!modal.classList.contains('open')) return;
+    modal.classList.remove('open');
+    if (!document.querySelector('.modal.open')) {
+      document.body.classList.remove('modal-open');
+    }
+    const target = lastFocused;
+    lastFocused = null;
+    if (target && document.contains(target) && typeof target.focus === 'function') {
+      target.focus();
+    }
+  }
+
+  function openHistory() {
+    renderHistory();
+    openModal(historyModal, historyPanel);
   }
 
   function closeHistory() {
-    if (!historyModal.classList.contains('open')) return;
-    historyModal.classList.remove('open');
-    document.body.classList.remove('modal-open');
-    if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
+    closeModal(historyModal);
+  }
+
+  function openSettings() {
+    renderSettings();
+    openModal(settingsModal, settingsPanel);
+  }
+
+  function closeSettings() {
+    closeModal(settingsModal);
+  }
+
+  function renderSettings() {
+    settingsHistoryCount.textContent = records.length ? records.length + ' 条记录' : '暂无记录';
+    settingsThemeIcon.textContent = THEME_ICONS[themeMode];
+    settingsThemeValue.textContent = THEME_VALUES[themeMode];
+    settingsTheme.setAttribute('aria-label', THEME_LABELS[themeMode]);
+    updateWallpaperUI();
+  }
+
+  // ---- 壁纸 ----
+  function updateWallpaperUI() {
+    const has = !!wallpaper;
+    settingsSkinState.textContent = has ? '已设置 · 点按更换' : '默认背景';
+    settingsSkinClear.hidden = !has;
+  }
+
+  function applyWallpaper(dataUrl) {
+    wallpaper = dataUrl || '';
+    if (wallpaperEl) {
+      wallpaperEl.style.backgroundImage = wallpaper ? 'url("' + wallpaper + '")' : '';
+    }
+    document.body.classList.toggle('has-wallpaper', !!wallpaper);
+    updateWallpaperUI();
+  }
+
+  function loadWallpaper() {
+    const stored = readRaw(KEYS.wallpaper);
+    return stored && stored.indexOf('data:image/') === 0 ? stored : '';
+  }
+
+  function persistWallpaper(dataUrl) {
+    return writeRaw(KEYS.wallpaper, dataUrl);
+  }
+
+  function removeWallpaper() {
+    try { localStorage.removeItem(KEYS.wallpaper); } catch (e) { /* ignore */ }
+    applyWallpaper('');
+  }
+
+  function loadImageFile(file) {
+    return new Promise(function (resolve, reject) {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = function () { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('decode')); };
+      img.src = url;
+    });
+  }
+
+  function renderWallpaper(img, maxDim, quality) {
+    const scale = Math.min(1, maxDim / Math.max(img.naturalWidth, img.naturalHeight));
+    const width = Math.max(1, Math.round(img.naturalWidth * scale));
+    const height = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    return canvas.toDataURL('image/jpeg', quality);
+  }
+
+  async function handleWallpaperFile(file) {
+    if (!file || !/^image\//.test(file.type)) {
+      settingsSkinState.textContent = '请选择图片文件';
+      return;
+    }
+    if (file.size > 25 * 1024 * 1024) {
+      settingsSkinState.textContent = '图片过大（上限 25 MB）';
+      return;
+    }
+
+    settingsSkinState.textContent = '正在处理…';
+    try {
+      const img = await loadImageFile(file);
+      let dataUrl = renderWallpaper(img, 1600, 0.85);
+      if (!persistWallpaper(dataUrl)) {
+        dataUrl = renderWallpaper(img, 1100, 0.7);
+        if (!persistWallpaper(dataUrl)) throw new Error('quota');
+      }
+      applyWallpaper(dataUrl);
+      closeSettings();
+      showHint('✓ 壁纸已更新', 'ok');
+    } catch (e) {
+      settingsSkinState.textContent = '处理失败，请换一张图片';
+    }
   }
 
   // ---- 清空 ----
@@ -520,7 +646,6 @@
 
   calcBtn.addEventListener('click', doCalculate);
   saveBtn.addEventListener('click', saveCurrentCalc);
-  clearAllBtn.addEventListener('click', clearAllInputs);
 
   keypad.addEventListener('click', function (e) {
     const btn = e.target.closest('button');
@@ -534,18 +659,51 @@
     });
   });
 
-  themeBtn.addEventListener('click', function () {
-    themeMode = THEME_NEXT[themeMode];
-    if (!writeRaw(KEYS.theme, themeMode)) showHint('⚠ 无法保存主题设置', 'warn');
-    applyTheme();
-  });
-
   clearHistoryBtn.addEventListener('click', clearHistory);
 
-  historyBtn.addEventListener('click', openHistory);
   closeHistoryBtn.addEventListener('click', closeHistory);
   historyModal.addEventListener('click', function (e) {
     if (e.target === historyModal) closeHistory();
+  });
+
+  settingsBtn.addEventListener('click', openSettings);
+  closeSettingsBtn.addEventListener('click', closeSettings);
+  settingsModal.addEventListener('click', function (e) {
+    if (e.target === settingsModal) closeSettings();
+  });
+
+  settingsHistory.addEventListener('click', function () {
+    closeSettings();
+    openHistory();
+  });
+
+  settingsSkin.addEventListener('click', function () {
+    wallpaperInput.value = '';
+    wallpaperInput.click();
+  });
+
+  settingsSkinClear.addEventListener('click', function (e) {
+    e.stopPropagation();
+    removeWallpaper();
+  });
+
+  wallpaperInput.addEventListener('change', function (e) {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (file) handleWallpaperFile(file);
+  });
+
+  settingsTheme.addEventListener('click', function () {
+    themeMode = THEME_NEXT[themeMode];
+    if (!writeRaw(KEYS.theme, themeMode)) showHint('⚠ 无法保存主题设置', 'warn');
+    applyTheme();
+    renderSettings();
+  });
+
+  settingsClearAll.addEventListener('click', function () {
+    clearAllInputs();
+    closeSettings();
+    showHint('已清空当前输入', 'ok');
   });
 
   historyList.addEventListener('click', function (e) {
@@ -558,14 +716,15 @@
   });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && historyModal.classList.contains('open')) {
-      closeHistory();
+    const openModalEl = document.querySelector('.modal.open');
+    if (e.key === 'Escape' && openModalEl) {
+      closeModal(openModalEl);
       return;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const target = e.target;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
-    if (historyModal.classList.contains('open')) return;
+    if (openModalEl) return;
 
     if (e.key >= '0' && e.key <= '9') { handleKeyPress(e.key); return; }
     if (e.key === '.') { handleKeyPress('.'); return; }
@@ -582,6 +741,8 @@
   // ---- 初始化 ----
   themeMode = readTheme();
   applyTheme();
+  wallpaper = loadWallpaper();
+  applyWallpaper(wallpaper);
   records = loadRecords();
   renderHistory();
   updateUnitButtons();
