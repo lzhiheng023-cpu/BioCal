@@ -37,10 +37,13 @@
   <header class="header">
     <div class="title-wrap">
       <h1>浓度计算器</h1>
-      <span class="app-version">v1.3.6</span>
+      <span class="app-version">v1.3.7</span>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" id="btn-settings" type="button" title="设置" aria-label="设置">⚙︎</button>
+      <div class="settings-wrap">
+        <button class="icon-btn" id="btn-settings" type="button" title="设置" aria-label="设置（有新功能）">⚙︎</button>
+        <span class="new-badge" id="settings-new" aria-hidden="true">NEW</span>
+      </div>
     </div>
   </header>
 
@@ -158,6 +161,27 @@
 </div>
 
 <input type="file" id="wallpaper-input" accept="image/*" hidden>
+
+<div class="modal" id="skin-modal">
+  <div class="modal-panel skin-panel" role="dialog" aria-modal="true" aria-labelledby="skin-title" tabindex="-1">
+    <div class="modal-header">
+      <h3 class="modal-title" id="skin-title">皮肤</h3>
+      <button class="icon-btn modal-close" id="btn-close-skin" type="button" aria-label="关闭">✕</button>
+    </div>
+    <div class="skin-grid" id="skin-grid"></div>
+    <div class="skin-custom">
+      <button class="skin-custom-main" id="skin-custom" type="button">
+        <span class="skin-custom-preview" id="skin-custom-preview">🖼</span>
+        <span class="skin-custom-text">
+          <strong>自定义图片</strong>
+          <small id="skin-custom-state">从相册选择</small>
+        </span>
+        <span class="settings-arrow">›</span>
+      </button>
+      <button class="skin-replace" id="skin-replace" type="button" hidden>更换</button>
+    </div>
+  </div>
+</div>
 
 <script src="calc.js"></script>
 <script src="app.js"></script>

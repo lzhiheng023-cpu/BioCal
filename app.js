@@ -11,8 +11,18 @@
   const KEYS = {
     theme: 'chemcalc_theme',
     history: 'chemcalc_v4',
-    wallpaper: 'chemcalc_wallpaper'
+    wallpaper: 'chemcalc_wallpaper',
+    skin: 'chemcalc_skin',
+    settingsSeen: 'chemcalc_settings_seen'
   };
+  const SKINS = [
+    { id: 'default', name: '默认', value: '' },
+    { id: 'mist', name: '晨雾', value: 'linear-gradient(160deg, #7dd3fc 0%, #a5b4fc 48%, #f0abfc 100%)' },
+    { id: 'sunset', name: '日落', value: 'linear-gradient(160deg, #fbbf24 0%, #fb923c 48%, #f472b6 100%)' },
+    { id: 'ocean', name: '海盐', value: 'linear-gradient(160deg, #67e8f9 0%, #93c5fd 48%, #818cf8 100%)' },
+    { id: 'violet', name: '紫雾', value: 'linear-gradient(160deg, #d8b4fe 0%, #a78bfa 48%, #818cf8 100%)' },
+    { id: 'graphite', name: '石墨', value: 'linear-gradient(160deg, #e2e8f0 0%, #cbd5e1 48%, #94a3b8 100%)' }
+  ];
   const FIELDS = Core.FIELDS;
   const FIELD_NAMES = { c: '浓度 c', V: '体积 V', m: '质量 m', M: '摩尔质量 M' };
   const THEME_ICONS = { auto: '◐', light: '☾', dark: '☀' };
@@ -62,8 +72,19 @@
   const settingsThemeIcon = $('#settings-theme-icon');
   const settingsThemeValue = $('#settings-theme-value');
   const settingsClearAll = $('#settings-clearall');
+  const settingsNew = $('#settings-new');
   const wallpaperInput = $('#wallpaper-input');
   const wallpaperEl = $('#wallpaper');
+
+  const skinModal = $('#skin-modal');
+  const skinPanel = $('#skin-modal .modal-panel');
+  const closeSkinBtn = $('#btn-close-skin');
+  const skinGrid = $('#skin-grid');
+  const skinCustom = $('#skin-custom');
+  const skinCustomPreview = $('#skin-custom-preview');
+  const skinCustomState = $('#skin-custom-state');
+  const skinReplace = $('#skin-replace');
+
   const metaThemeColor = $('meta[name="theme-color"]');
 
   // ---- 状态 ----
@@ -73,7 +94,8 @@
   let unitState = Object.assign({}, Core.DEFAULT_UNITS);
   let themeMode = 'auto';
   let records = [];
-  let wallpaper = '';
+  let skinId = 'default';
+  let customWallpaper = '';
 
   // ---- 本地存储（隐私模式 / 配额满时不抛错） ----
   function readRaw(key) {
@@ -531,7 +553,15 @@
     closeModal(historyModal);
   }
 
+  function markSettingsSeen() {
+    if (!settingsNew || settingsNew.hidden) return;
+    settingsNew.hidden = true;
+    settingsBtn.setAttribute('aria-label', '设置');
+    writeRaw(KEYS.settingsSeen, '1');
+  }
+
   function openSettings() {
+    markSettingsSeen();
     renderSettings();
     openModal(settingsModal, settingsPanel);
   }
@@ -545,37 +575,122 @@
     settingsThemeIcon.textContent = THEME_ICONS[themeMode];
     settingsThemeValue.textContent = THEME_VALUES[themeMode];
     settingsTheme.setAttribute('aria-label', THEME_LABELS[themeMode]);
-    updateWallpaperUI();
+    updateSkinUI();
   }
 
-  // ---- 壁纸 ----
-  function updateWallpaperUI() {
-    const has = !!wallpaper;
-    settingsSkinState.textContent = has ? '已设置 · 点按更换' : '默认背景';
-    settingsSkinClear.hidden = !has;
+  // ---- 皮肤 / 壁纸 ----
+  function findSkin(id) {
+    return SKINS.filter(function (skin) { return skin.id === id; })[0] || SKINS[0];
   }
 
-  function applyWallpaper(dataUrl) {
-    wallpaper = dataUrl || '';
+  function isPresetSkin(id) {
+    return SKINS.some(function (skin) { return skin.id === id; });
+  }
+
+  function skinName(id) {
+    return id === 'custom' ? '自定义图片' : findSkin(id).name;
+  }
+
+  function updateSkinUI() {
+    settingsSkinState.textContent = skinId === 'default'
+      ? '默认背景'
+      : skinName(skinId) + ' · 点按更换';
+    settingsSkinClear.hidden = !customWallpaper;
+  }
+
+  function applySkin(id, persist) {
+    skinId = id;
+    const image = id === 'custom' ? customWallpaper : '';
+    const preset = id === 'custom' ? null : findSkin(id);
+
     if (wallpaperEl) {
-      wallpaperEl.style.backgroundImage = wallpaper ? 'url("' + wallpaper + '")' : '';
+      wallpaperEl.style.backgroundImage = image
+        ? 'url("' + image + '")'
+        : (preset && preset.value ? preset.value : '');
     }
-    document.body.classList.toggle('has-wallpaper', !!wallpaper);
-    updateWallpaperUI();
+    document.body.classList.toggle('has-wallpaper', id === 'custom' && !!image);
+    document.body.classList.toggle('has-skin', id !== 'default');
+
+    if (persist !== false) writeRaw(KEYS.skin, id);
+    updateSkinUI();
   }
 
-  function loadWallpaper() {
+  function loadSkin() {
     const stored = readRaw(KEYS.wallpaper);
-    return stored && stored.indexOf('data:image/') === 0 ? stored : '';
+    customWallpaper = stored && stored.indexOf('data:image/') === 0 ? stored : '';
+
+    const storedSkin = readRaw(KEYS.skin);
+    if (storedSkin === 'custom' && customWallpaper) skinId = 'custom';
+    else if (storedSkin && isPresetSkin(storedSkin)) skinId = storedSkin;
+    else skinId = customWallpaper ? 'custom' : 'default';
+
+    applySkin(skinId, false);
   }
 
   function persistWallpaper(dataUrl) {
     return writeRaw(KEYS.wallpaper, dataUrl);
   }
 
-  function removeWallpaper() {
+  function removeCustomWallpaper() {
+    customWallpaper = '';
     try { localStorage.removeItem(KEYS.wallpaper); } catch (e) { /* ignore */ }
-    applyWallpaper('');
+    if (skinId === 'custom') applySkin('default');
+    else updateSkinUI();
+    if (skinModal.classList.contains('open')) renderSkinModal();
+  }
+
+  function renderSkinModal() {
+    skinGrid.textContent = '';
+    SKINS.forEach(function (skin) {
+      const tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'skin-tile' + (skinId === skin.id ? ' active' : '');
+      tile.dataset.skin = skin.id;
+      tile.style.background = skin.value || 'var(--bg)';
+      tile.setAttribute('aria-pressed', skinId === skin.id ? 'true' : 'false');
+      tile.setAttribute('aria-label', skin.name);
+
+      const name = document.createElement('span');
+      name.className = 'skin-name';
+      name.textContent = skin.name;
+
+      const check = document.createElement('span');
+      check.className = 'skin-check';
+      check.textContent = '✓';
+
+      tile.appendChild(name);
+      tile.appendChild(check);
+      skinGrid.appendChild(tile);
+    });
+
+    const hasCustom = !!customWallpaper;
+    skinCustom.classList.toggle('active', skinId === 'custom');
+    skinCustomPreview.style.backgroundImage = hasCustom ? 'url("' + customWallpaper + '")' : '';
+    skinCustomPreview.textContent = hasCustom ? '' : '🖼';
+    skinCustomState.textContent = hasCustom
+      ? (skinId === 'custom' ? '使用中' : '已保存 · 点按使用')
+      : '从相册选择';
+    skinReplace.hidden = !hasCustom;
+  }
+
+  function openSkin() {
+    renderSkinModal();
+    openModal(skinModal, skinPanel);
+  }
+
+  function closeSkin() {
+    closeModal(skinModal);
+  }
+
+  function chooseSkin(id) {
+    applySkin(id);
+    closeSkin();
+    showHint('✓ 已切换皮肤：' + skinName(id), 'ok');
+  }
+
+  function openWallpaperPicker() {
+    wallpaperInput.value = '';
+    wallpaperInput.click();
   }
 
   function loadImageFile(file) {
@@ -604,15 +719,15 @@
 
   async function handleWallpaperFile(file) {
     if (!file || !/^image\//.test(file.type)) {
-      settingsSkinState.textContent = '请选择图片文件';
+      skinCustomState.textContent = '请选择图片文件';
       return;
     }
     if (file.size > 25 * 1024 * 1024) {
-      settingsSkinState.textContent = '图片过大（上限 25 MB）';
+      skinCustomState.textContent = '图片过大（上限 25 MB）';
       return;
     }
 
-    settingsSkinState.textContent = '正在处理…';
+    skinCustomState.textContent = '正在处理…';
     try {
       const img = await loadImageFile(file);
       let dataUrl = renderWallpaper(img, 1600, 0.85);
@@ -620,11 +735,13 @@
         dataUrl = renderWallpaper(img, 1100, 0.7);
         if (!persistWallpaper(dataUrl)) throw new Error('quota');
       }
-      applyWallpaper(dataUrl);
+      customWallpaper = dataUrl;
+      applySkin('custom');
+      closeSkin();
       closeSettings();
       showHint('✓ 壁纸已更新', 'ok');
     } catch (e) {
-      settingsSkinState.textContent = '处理失败，请换一张图片';
+      skinCustomState.textContent = '处理失败，请换一张图片';
     }
   }
 
@@ -794,14 +911,33 @@
   });
 
   settingsSkin.addEventListener('click', function () {
-    wallpaperInput.value = '';
-    wallpaperInput.click();
+    closeSettings();
+    openSkin();
   });
 
   settingsSkinClear.addEventListener('click', function (e) {
     e.stopPropagation();
-    removeWallpaper();
+    removeCustomWallpaper();
   });
+
+  closeSkinBtn.addEventListener('click', closeSkin);
+  skinModal.addEventListener('click', function (e) {
+    if (e.target === skinModal) closeSkin();
+  });
+  skinGrid.addEventListener('click', function (e) {
+    const tile = e.target.closest('.skin-tile');
+    if (tile) chooseSkin(tile.dataset.skin);
+  });
+  skinCustom.addEventListener('click', function () {
+    if (customWallpaper) {
+      applySkin('custom');
+      closeSkin();
+      showHint('✓ 已切换为自定义图片', 'ok');
+    } else {
+      openWallpaperPicker();
+    }
+  });
+  skinReplace.addEventListener('click', openWallpaperPicker);
 
   wallpaperInput.addEventListener('change', function (e) {
     const file = e.target.files && e.target.files[0];
@@ -875,8 +1011,12 @@
   // ---- 初始化 ----
   themeMode = readTheme();
   applyTheme();
-  wallpaper = loadWallpaper();
-  applyWallpaper(wallpaper);
+
+  const settingsSeen = !!readRaw(KEYS.settingsSeen);
+  settingsNew.hidden = settingsSeen;
+  settingsBtn.setAttribute('aria-label', settingsSeen ? '设置' : '设置（有新功能）');
+
+  loadSkin();
   records = loadRecords();
   renderHistory();
   updateUnitButtons();

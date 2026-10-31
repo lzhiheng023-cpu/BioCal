@@ -81,6 +81,16 @@ body {
   background-size: cover;
   background-repeat: no-repeat;
 }
+.wallpaper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, .3);
+  opacity: 0;
+  transition: opacity .2s;
+  pointer-events: none;
+}
+[data-theme="dark"] body.has-skin .wallpaper::after { opacity: 1; }
 
 /* 键盘 / 触屏焦点样式 */
 :where(button, input):focus-visible {
@@ -101,6 +111,16 @@ body {
 .title-wrap { display: flex; align-items: baseline; gap: 6px; }
 .app-version { font-size: .66rem; color: var(--text2); font-weight: 500; letter-spacing: .03em; }
 .header-actions { display: flex; gap: 6px; }
+.settings-wrap { position: relative; display: flex; }
+.new-badge {
+  position: absolute; top: -4px; right: -7px;
+  padding: 2px 5px; border-radius: 999px;
+  background: var(--danger); color: #fff;
+  font-size: .55rem; font-weight: 700; line-height: 1.1;
+  letter-spacing: .03em; pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+}
+[data-theme="dark"] .new-badge { color: #0f172a; }
 .icon-btn {
   width: 38px; height: 38px; border: none; border-radius: 10px;
   background: var(--card); color: var(--text2); font-size: 1.1rem;
@@ -368,6 +388,60 @@ button.settings-item:active { background: var(--input-bg); }
   font-size: .7rem; font-weight: 600; padding: 5px 8px; cursor: pointer;
 }
 .settings-clear:active { opacity: .7; }
+
+/* 皮肤选择 */
+.skin-panel { max-width: 360px; overflow-y: auto; }
+.skin-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 10px;
+}
+.skin-tile {
+  position: relative; height: 76px; padding: 0;
+  border: none; border-radius: 12px; overflow: hidden;
+  cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .06);
+}
+.skin-tile:active { transform: scale(.98); }
+.skin-tile.active { outline: 2px solid var(--primary); outline-offset: 2px; }
+.skin-name {
+  position: absolute; left: 8px; bottom: 8px;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(255, 255, 255, .78); color: #0f172a;
+  font-size: .7rem; font-weight: 600;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.skin-check {
+  position: absolute; top: 8px; right: 8px;
+  width: 20px; height: 20px; border-radius: 50%;
+  display: none; align-items: center; justify-content: center;
+  background: var(--primary); color: #fff; font-size: .65rem;
+}
+.skin-tile.active .skin-check { display: flex; }
+
+.skin-custom {
+  display: flex; align-items: center; gap: 8px;
+  padding-top: 10px; border-top: 1px solid var(--border);
+}
+.skin-custom-main {
+  flex: 1; display: flex; align-items: center; gap: 10px;
+  min-width: 0; padding: 6px; border: none; border-radius: 10px;
+  background: none; color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+}
+.skin-custom-main.active { outline: 2px solid var(--primary); outline-offset: -2px; }
+.skin-custom-preview {
+  width: 40px; height: 40px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px; background: var(--input-bg) center / cover no-repeat;
+  font-size: 1.1rem;
+}
+.skin-custom-text { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.skin-custom-text strong { font-size: .84rem; font-weight: 600; }
+.skin-custom-text small { font-size: .7rem; color: var(--text2); }
+.skin-replace {
+  flex: 0 0 auto; border: none; border-radius: 8px;
+  background: var(--input-bg); color: var(--text2);
+  font-size: .7rem; padding: 6px 10px; cursor: pointer;
+}
 
 [hidden] { display: none !important; }
 
